@@ -1,0 +1,28 @@
+# Operating system junk
+desktop.ini
+Thumbs.db
+.DS_Store
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*~
+
+# Configuration with secrets — never commit
+settle-private/config/config.php
+
+# Local logs
+settle-private/storage/logs/*
+!settle-private/storage/logs/.gitkeep
+
+# User-uploaded files
+public_html/Settle/uploads/*
+!public_html/Settle/uploads/.gitkeep
+settle-private/storage/uploads/*
+!settle-private/storage/uploads/.gitkeep
+
+# Backup files
+*.bak
+*.backup
+*.orig

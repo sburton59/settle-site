@@ -1,0 +1,162 @@
+/* Settle Admin — minimal starter stylesheet
+   Tailwind/Bootstrap can be swapped in later; this is just enough to be usable. */
+
+:root {
+  --brand-red: #9E2A2B;
+  --brand-rose: #D9A6A8;
+  --gray-50: #f8f8f8;
+  --gray-100: #f0f0f0;
+  --gray-200: #e5e5e5;
+  --gray-400: #999;
+  --gray-700: #444;
+  --gray-900: #1a1a1a;
+  --success: #2e7d32;
+  --error: #c62828;
+  --info: #1565c0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--gray-900);
+  background: var(--gray-50);
+}
+
+a { color: var(--brand-red); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+button, .btn-primary {
+  display: inline-block;
+  padding: 0.6em 1.2em;
+  border: 0;
+  border-radius: 4px;
+  background: var(--brand-red);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+button:hover, .btn-primary:hover { opacity: 0.9; }
+
+button.linklike {
+  background: none;
+  color: var(--brand-red);
+  padding: 0;
+  text-decoration: underline;
+}
+
+input[type=text], input[type=password], input[type=email], textarea, select {
+  width: 100%;
+  padding: 0.5em 0.7em;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  font: inherit;
+  margin-top: 0.2em;
+}
+
+textarea { min-height: 250px; }
+
+label {
+  display: block;
+  margin-bottom: 1em;
+  color: var(--gray-700);
+  font-size: 0.92em;
+}
+
+label.checkbox { display: flex; align-items: center; gap: 0.5em; }
+label.checkbox input { width: auto; margin: 0; }
+
+/* Public/login layout */
+body.public {
+  background: var(--gray-100);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1em;
+}
+
+.login-card {
+  background: #fff;
+  padding: 2em 2.5em;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-card h1 {
+  margin: 0 0 0.2em;
+  color: var(--brand-red);
+  font-size: 1.6em;
+}
+
+.muted { color: var(--gray-400); }
+
+/* Admin layout: sidebar + content */
+body.admin {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--gray-900);
+  color: #fff;
+  padding: 1.5em 1em;
+}
+
+.sidebar .brand {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: var(--brand-rose);
+  margin-bottom: 1.5em;
+}
+
+.sidebar nav { display: flex; flex-direction: column; gap: 0.3em; }
+.sidebar nav a { color: #fff; padding: 0.5em 0.7em; border-radius: 4px; }
+.sidebar nav a:hover { background: rgba(255,255,255,0.08); text-decoration: none; }
+
+.sidebar .signin {
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  font-size: 0.85em;
+  color: var(--gray-400);
+}
+
+.content { padding: 2em; max-width: 1100px; }
+
+/* Flash messages */
+.flash {
+  padding: 0.8em 1em;
+  border-radius: 4px;
+  margin-bottom: 1em;
+}
+.flash-success { background: #e8f5e9; color: var(--success); border-left: 4px solid var(--success); }
+.flash-error   { background: #ffebee; color: var(--error);   border-left: 4px solid var(--error); }
+.flash-info    { background: #e3f2fd; color: var(--info);    border-left: 4px solid var(--info); }
+
+/* Tables */
+table.list {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+table.list th, table.list td { padding: 0.7em 1em; text-align: left; border-bottom: 1px solid var(--gray-100); }
+table.list th { background: var(--gray-50); font-size: 0.85em; color: var(--gray-700); text-transform: uppercase; letter-spacing: 0.5px; }
+table.list tr:last-child td { border-bottom: 0; }
+
+.row-actions { text-align: right; }
+
+/* Mobile */
+@media (max-width: 800px) {
+  body.admin { grid-template-columns: 1fr; }
+  .sidebar { padding: 1em; }
+  .sidebar nav { flex-direction: row; flex-wrap: wrap; }
+  .content { padding: 1em; }
+}

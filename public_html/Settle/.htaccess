@@ -1,0 +1,28 @@
+RewriteEngine On
+
+# Block dotfiles
+RewriteRule ^\. - [F,L]
+
+# Real files/directories served as-is
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Everything else through the front controller
+RewriteRule ^ index.php [QSA,L]
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Block access to source-control / editor leftovers if they ever land here
+<FilesMatch "(^\.git|\.env|composer\.(json|lock)|\.htpasswd|^README)">
+    Require all denied
+</FilesMatch>
