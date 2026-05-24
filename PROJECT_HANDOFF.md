@@ -1,6 +1,8 @@
 # **Settle Memorial UMC Website Modernization — Project Handoff**
 
-**Document version:** 1.0 **Date prepared:** May 24, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
+**Document version:** 1.1 **Date prepared:** May 24, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
+
+**Changes in v1.1:** Media Library shipped (moved from roadmap to working features). GitHub repo set up at `https://github.com/sburton59/settle-site`. Server now uses a symlink-based deploy from a GitHub clone — see §8 for the new workflow.
 
 ---
 
@@ -10,7 +12,7 @@ Settle Memorial United Methodist Church (Owensboro, Kentucky) is replacing its e
 
 The new site is being built from scratch — no framework, no WordPress, no CMS dependency — using plain PHP 8.1+ and MySQL/MariaDB. The end result must be (a) secure, (b) inexpensive to maintain, and (c) operable by non-technical church staff through a clean admin panel.
 
-Current status as of handoff: **functional skeleton in place**. A fresh staff member can log into an admin panel and edit pages end-to-end. Every other feature (blog, media library, slideshow, staff directory, Google Calendar integration, prayer requests, contact form) has been **fully designed and database-modeled** but **not yet implemented in code**. The roadmap is in section 10\.
+Current status as of handoff: **Pages CRUD and Media Library both working end-to-end.** A fresh staff member can log in, edit pages, and upload/manage images. Remaining proposal features (blog, slideshow, staff directory, Google Calendar, prayer requests, contact form, public theming) are designed and database-modeled but not yet implemented. The roadmap is in §10.
 
 ---
 
@@ -75,6 +77,28 @@ The router enforces this with per-route `auth` and `role` middleware options.
 * HTML output is escaped through a template-local `e()` helper; HTML stored in `body_html` columns is trusted because only authenticated staff can write it  
 * `.htaccess` blocks PHP execution in the uploads folder  
 * Security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`)
+
+### **3.6 Deployment via GitHub clone + symlinks**
+
+The server does **not** host the canonical copy of the code. Instead:
+
+* A clone of the GitHub repo lives at `~/settle-site-repo/`
+* The Apache document root paths (`~/public_html/Settle/` and `~/settle-private/`) are **symlinks** into that clone
+* Deploying a change is one command on the server: `cd ~/settle-site-repo && git pull`
+
+This setup means:
+
+* GitHub is always the source of truth. The server is provably identical to a specific commit.
+* Rollback is `git checkout <commit>` — fast and reliable.
+* No file-copying step that can go wrong or leave the server in a half-updated state.
+* The deploy never touches the live config or uploaded files (which are gitignored and live alongside the repo).
+
+A few non-obvious requirements that come with this layout:
+
+* The clone directory must be `chmod 755` so Apache (running as a different user) can traverse into it. cPanel's Git Version Control creates new clones with `700` permissions by default, which causes a `403 Forbidden` until fixed.
+* `settle-private/config/config.php` must be created on the server after clone (it's gitignored — copy `config.example.php` and fill in real credentials).
+* Uploaded files live in `~/settle-site-repo/public_html/Settle/uploads/` (resolved through the symlink). They survive `git pull` because git only modifies tracked files.
+* Line endings: `.gitattributes` enforces LF everywhere via `* text=auto eol=lf`. Don't bypass this — mixed CRLF/LF files in the repo cause confusing diffs and false "modified" status.
 
 ---
 
@@ -150,15 +174,18 @@ settle-private/                        ← Outside web root; not URL-accessible
 │   ├── Auth.php                       ← Login, logout, role checks (Argon2id)  
 │   ├── Csrf.php                       ← Token generation and verification  
 │   ├── View.php                       ← PHP-as-template renderer with layouts  
+│   ├── Upload.php                     ← Upload validation, MIME detection, image resizing (GD)  
 │   ├── Controller/  
 │   │   ├── BaseController.php         ← Shared render/redirect/flash/input helpers  
 │   │   ├── AuthController.php         ← Login/logout endpoints  
 │   │   ├── DashboardController.php    ← Admin home screen  
 │   │   ├── PagesController.php        ← Pages CRUD (fully implemented)  
+│   │   ├── MediaController.php        ← Media Library CRUD (fully implemented)  
 │   │   └── PublicController.php       ← Public homepage and /page/{slug}  
 │   └── Model/  
 │       ├── User.php                   ← User lookup, password updates, last-login touch  
-│       └── Page.php                   ← Page CRUD with slug uniqueness  
+│       ├── Page.php                   ← Page CRUD with slug uniqueness  
+│       └── Media.php                  ← Media library DB queries + pagination  
 ├── templates/  
 │   ├── layout/  
 │   │   ├── admin.php                  ← Sidebar \+ content shell  
@@ -166,14 +193,19 @@ settle-private/                        ← Outside web root; not URL-accessible
 │   ├── auth/login.php  
 │   ├── admin/  
 │   │   ├── dashboard.php              ← Stub welcome screen  
-│   │   └── pages/  
-│   │       ├── index.php              ← Pages list with hide/show toggle  
-│   │       └── edit.php               ← Pages create/edit form  
+│   │   ├── pages/  
+│   │   │   ├── index.php              ← Pages list with hide/show toggle  
+│   │   │   └── edit.php               ← Pages create/edit form  
+│   │   └── media/  
+│   │       ├── index.php              ← Library grid + upload form, paginated  
+│   │       └── edit.php               ← Image preview + metadata form + delete  
 │   └── public/  
 │       ├── home.php                   ← Stub homepage rendering the About page body  
 │       └── page.php                   ← Generic public page renderer  
 ├── config/  
-│   └── config.php                     ← DB credentials, app name, session lifetimes  
+│   ├── config.php                     ← DB credentials, app name, session lifetimes (gitignored)  
+│   ├── config.example.php             ← Template for config.php (committed)  
+│   └── .gitkeep  
 ├── storage/  
 │   ├── uploads/                       ← (Reserved; current uploads live in public\_html/Settle/uploads/)  
 │   └── logs/                          ← PHP error log destination  
@@ -197,6 +229,7 @@ The router is the central nervous system. It loads middleware (auth, role), enfo
 * ✅ Login screen with error messaging  
 * ✅ Dashboard placeholder  
 * ✅ **Pages: full CRUD** — list, create, edit, save, hide/show. Validates slug uniqueness and format. Auto-updates `updated_by` and `updated_at`.  
+* ✅ **Media Library: full CRUD** — upload, browse (paginated grid), edit metadata (alt text + caption), delete. Server-side MIME detection, 10MB cap, auto-resize images down to 2000px on long edge using GD. Files stored under `uploads/YYYY/MM/<random>.<ext>`. PDF supported alongside JPEG/PNG/GIF/WebP. Authors can only delete their own uploads.  
 * ✅ Public-facing page rendering at `/page/{slug}`  
 * ✅ Stub homepage that renders the About page body
 
@@ -205,7 +238,6 @@ The router is the central nervous system. It loads middleware (auth, role), enfo
 These tables exist in the schema and screens were wireframed in the admin panel design, but no controllers, models, or templates exist yet:
 
 * ⏳ **Blog Posts** (multi-author, with featured images and inline media). Schema: `posts`, `post_media`. Highest priority — the proposal calls this out specifically.  
-* ⏳ **Media Library** (upload, browse, alt-text editing). Schema: `media`. Critical because slideshow \+ posts \+ staff \+ page heros all depend on it.  
 * ⏳ **Homepage Slideshow** (drag-to-reorder, activate/deactivate). Schema: `slideshow_slides`.  
 * ⏳ **Staff Directory** management (the public-facing staff page exists conceptually but no admin UI yet). Schema: `staff`.  
 * ⏳ **Google Calendar Integration** (sync job, calendar page, upcoming-events widget). Schema: `calendar_events_cache`, `calendar_event_overrides`. Requires a Google Calendar API key and either a cron job or scheduled-task hook.  
@@ -221,24 +253,56 @@ These tables exist in the schema and screens were wireframed in the admin panel 
 
 * No automated tests yet. PHPUnit would be the obvious choice for unit tests; for end-to-end browser tests Playwright is recommended.  
 * No automated backup strategy documented.  
-* No image resizing pipeline. When the media library is built, uploads should generate thumbnail/web/full variants.  
+* Image resizing on upload exists (long edge capped at 2000px) but there's no thumbnail variant generation yet. The library currently uses the full-size image as the thumbnail in the grid, which is wasteful for very large images even after the 2000px cap.  
 * No rate-limiting on login (the proposal-era plan mentions 5 attempts/15min lockout but it's not enforced yet).  
 * No email sending configured (needed for password resets, prayer team notifications, contact form forwarding).
 
 ---
 
-## **8\. Local Install & First-Run Checklist**
+## **8\. Install & Deploy Workflow**
 
-For a fresh contributor setting up the project:
+The site is hosted on cPanel shared hosting and deployed from GitHub via a clone-and-symlink pattern (see §3.6 for the architectural rationale).
 
-1. **Create the database:** In cPanel (or via mysql CLI locally), create a MySQL database named `settleumc` and a user `settleumc_app` with full privileges on it.  
-2. **Edit `settle-private/config/config.php`:** Replace `CHANGE_ME` with the database password. Verify the `host`, `name`, and `user` fields match your environment.  
-3. **Load the schema:** Import `settle-private/sql/schema.sql` into the database (cPanel phpMyAdmin → Import, or `mysql -u settleumc_app -p settleumc < schema.sql`).  
-4. **Seed the initial admin user:** Import `settle-private/sql/seed.sql`. The default credentials are documented in the seed file's header — change the password immediately after first login.  
-5. **Upload the files:** Push `public_html/Settle/` and `settle-private/` to the server in their respective locations (see section 3.2). Set `settle-private/storage/logs/` to writable by the web user.  
-6. **Point the domain:** Configure the Apache addon-domain for settleumc.com (or whatever staging domain you're using) to use `public_html/Settle/` as the document root.  
-7. **Visit `https://yourdomain/admin/login`** and sign in with the seeded credentials.  
-8. **Verify:** The dashboard should load, and the Pages screen should show the seeded sample pages, which you can edit.
+### **8.1 First-time server install**
+
+For a fresh setup on a new server (or recovering from disaster):
+
+1. **Create the database.** cPanel → MySQL Databases. Create database `settleumc` and user `settleumc_app` (cPanel prefixes both with your account name). Grant ALL PRIVILEGES.  
+2. **Clone the GitHub repo via cPanel.** Files → Git Version Control → Create. Clone URL: `https://github.com/sburton59/settle-site.git`. Repository Path: `~/settle-site-repo`. This creates the clone at `/home/<account>/settle-site-repo/`.  
+3. **Open up directory permissions.** cPanel clones default to `chmod 700` which Apache can't traverse. SSH in and run `chmod 755 ~/settle-site-repo`. (Without this you'll get 403 Forbidden on every page.)  
+4. **Create config.php.** Copy `~/settle-site-repo/settle-private/config/config.example.php` to `~/settle-site-repo/settle-private/config/config.php` and fill in the real DB credentials. Set `chmod 0640` for safety. This file is gitignored and never deployed automatically.  
+5. **Import the schema.** phpMyAdmin → select database → Import → upload `~/settle-site-repo/settle-private/sql/schema.sql`.  
+6. **Seed the first admin user.** Either import `seed.sql` if present, or insert manually. Generate a password hash with `php -r "echo password_hash('your-password', PASSWORD_ARGON2ID), PHP_EOL;"` and insert into `users` with `is_active=1, role='admin'`.  
+7. **Create symlinks so Apache reads from the clone.** SSH in:
+   ```bash
+   # Move any pre-existing live folders aside
+   mv ~/public_html/Settle ~/public_html/Settle.old   # if it exists
+   mv ~/settle-private ~/settle-private.old           # if it exists
+   # Create symlinks
+   ln -s ~/settle-site-repo/public_html/Settle ~/public_html/Settle
+   ln -s ~/settle-site-repo/settle-private ~/settle-private
+   ```  
+8. **Verify storage directories exist and are writable.** `~/settle-site-repo/settle-private/storage/logs/` must be writable for PHP error logging. `~/settle-site-repo/public_html/Settle/uploads/` must be writable for the Media Library.  
+9. **Point the domain.** cPanel → Domains. Set the addon-domain document root to `public_html/Settle/` (which is now a symlink to the clone). Verify HTTPS is set up via Let's Encrypt.  
+10. **Visit `https://yourdomain/admin/login`**, sign in, change the seeded password.
+
+### **8.2 Deploy workflow (after first install)**
+
+The day-to-day rhythm:
+
+1. **Locally on Windows:** edit code in your repo clone (e.g. `C:\Projects\settle-site\`). Commit and push via GitHub Desktop. Pushing is a separate step from committing — make sure the "Push origin" button shows zero pending commits when you're done.  
+2. **On the server (cPanel Terminal):**
+   ```bash
+   cd ~/settle-site-repo && git pull
+   ```  
+3. That's it. The symlinks resolve to the freshly-pulled code; the next page request serves the updated version.
+
+### **8.3 Important workflow rules**
+
+* **Never edit code directly on the server.** The clone tracks GitHub; any local edits will conflict with the next `git pull`. If you need to make a quick fix on the server, do it locally instead, push, then pull.
+* **GitHub Desktop's "Commit to main" does not push.** Pushing is a separate click. The push button at the top of GitHub Desktop shows pending commit count; verify it reads "Fetch origin" (no pending) when you're done.
+* **Line endings:** the `.gitattributes` file enforces LF everywhere via `* text=auto eol=lf`. Don't paste files from non-git editors that strip this; if files drift to CRLF, the diff against the repo becomes a wall of false positives.
+* **Files outside git:** `config.php` and everything in `uploads/`, `storage/logs/`, `storage/uploads/` is gitignored and lives only on the server. These survive `git pull` because git doesn't touch untracked files.
 
 ---
 
@@ -262,25 +326,24 @@ In rough order of value-to-effort. Time estimates assume a single developer (or 
 
 | Priority | Feature | Est. Effort | Why |
 | ----- | ----- | ----- | ----- |
-| 1 | **Media Library (upload, browse, alt text)** | 1–2 days | Blocker for slideshow, posts, staff. Implement first. |
-| 2 | **WYSIWYG editor on Pages** | 0.5 day | Massive UX win for staff. Integrate TinyMCE or Quill. |
-| 3 | **Homepage Slideshow management** | 0.5 day | Proposal-promised feature. Drag-to-reorder. |
-| 4 | **Staff Directory CRUD \+ public page** | 1 day | Replaces existing site's staff page. |
-| 5 | **Public theming** (real homepage, header, footer, brand styles) | 2–3 days | Site needs to actually look like Settle Memorial. |
-| 6 | **Google Calendar sync \+ display** | 2 days | Proposal-promised feature. Includes API setup, sync job, calendar page, upcoming-events widget. |
-| 7 | **Blog Posts (multi-author CRUD \+ public listing)** | 2 days | Proposal-promised feature. |
-| 8 | **Prayer Requests form \+ admin inbox** | 0.5 day | Simple. |
-| 9 | **Contact form \+ admin inbox** | 0.5 day | Simple. |
-| 10 | **Settings UI** | 0.5 day | Removes the need to edit DB directly. |
-| 11 | **User management UI** | 0.5 day | Currently requires DB edits. |
-| 12 | **Email sending** (password reset, notifications) | 1 day | Needed for production. |
-| 13 | **Audit log hooks \+ viewer** | 0.5 day | Wire `audit_log` table into write paths. |
-| 14 | **Rate-limit login attempts** | 0.25 day | Simple security hardening. |
-| 15 | **Image resizing pipeline** | 0.5 day | Performance — generate thumb/web/full on upload. |
-| 16 | **Migration of existing content** | 1–2 days | Bulk-import current settleumc.com text \+ images into the new system. |
-| 17 | **Tests** | ongoing | PHPUnit for models/controllers; Playwright for end-to-end. |
+| 1 | **WYSIWYG editor on Pages** | 0.5 day | Massive UX win for staff. Integrate TinyMCE or Quill. |
+| 2 | **Homepage Slideshow management** | 0.5 day | Proposal-promised feature. Drag-to-reorder. Builds on Media Library. |
+| 3 | **Staff Directory CRUD \+ public page** | 1 day | Replaces existing site's staff page. Uses Media Library for photos. |
+| 4 | **Public theming** (real homepage, header, footer, brand styles) | 2–3 days | Site needs to actually look like Settle Memorial. |
+| 5 | **Google Calendar sync \+ display** | 2 days | Proposal-promised feature. Includes API setup, sync job, calendar page, upcoming-events widget. |
+| 6 | **Blog Posts (multi-author CRUD \+ public listing)** | 2 days | Proposal-promised feature. Uses Media Library for inline + featured images. |
+| 7 | **Prayer Requests form \+ admin inbox** | 0.5 day | Simple. |
+| 8 | **Contact form \+ admin inbox** | 0.5 day | Simple. |
+| 9 | **Settings UI** | 0.5 day | Removes the need to edit DB directly. |
+| 10 | **User management UI** | 0.5 day | Currently requires DB edits. |
+| 11 | **Email sending** (password reset, notifications) | 1 day | Needed for production. |
+| 12 | **Audit log hooks \+ viewer** | 0.5 day | Wire `audit_log` table into write paths. |
+| 13 | **Rate-limit login attempts** | 0.25 day | Simple security hardening. |
+| 14 | **Thumbnail variants for Media Library** | 0.5 day | Currently grid uses full-size images. Generate 300px thumb on upload. |
+| 15 | **Migration of existing content** | 1–2 days | Bulk-import current settleumc.com text \+ images into the new system. |
+| 16 | **Tests** | ongoing | PHPUnit for models/controllers; Playwright for end-to-end. |
 
-**Recommended sequence for the next session:** Items 1 → 2 → 3 in order. That gets you a media library, a real editor, and a working slideshow — the three things that most clearly demonstrate "this is better than the old site" to church leadership.
+**Recommended sequence for the next session:** WYSIWYG editor (#1) → Slideshow (#2) → Staff Directory (#3). The slideshow and staff directory both build on the Media Library that's already in place, so they're efficient follow-ons. Public theming (#4) could also be pulled forward if visual progress matters for stakeholder buy-in.
 
 ---
 
@@ -306,8 +369,9 @@ These should be answered by the church before — or during — the next round o
 When starting a new project session with this document loaded:
 
 * Ask the new Claude to **read this document first** before any code work.  
-* The code zip should be uploaded alongside this document so Claude can see the actual file contents.  
-* For incremental work, the most effective prompt format is: *"I want to implement feature X from section 10's roadmap. Please review the existing codebase to understand the conventions in `PagesController` and `Page` model, then propose the implementation."*  
-* Always have Claude follow the conventions in section 9 — strict types, prepared statements, CSRF on POSTs, role-checked middleware, escaped output.  
-* When making schema changes, update `schema.sql` AND create a migration script in a new `settle-private/sql/migrations/` folder so production can be upgraded incrementally rather than re-imported from scratch.
+* Source code lives at `https://github.com/sburton59/settle-site` (public repo). Claude can sometimes read files from GitHub directly via URL, but it's unreliable due to GitHub's robots.txt; the practical pattern is: when a bug surfaces, paste the specific file from the stack trace into chat.  
+* For incremental work, the most effective prompt format is: *"I want to implement feature X from §10's roadmap. Please review the existing codebase to understand the conventions in `PagesController` and `Page` model (or `MediaController` for upload patterns), then propose the implementation."*  
+* Always have Claude follow the conventions in §9 — strict types, prepared statements (with **distinct** named placeholders even when binding the same value — PDO with emulation disabled forbids reusing names), CSRF on POSTs, role-checked middleware, escaped output.  
+* When making schema changes, update `schema.sql` AND create a migration script in a new `settle-private/sql/migrations/` folder so production can be upgraded incrementally rather than re-imported from scratch.  
+* When delivering new files, hand them off as artifacts (downloadable). The user saves them locally in `C:\Projects\settle-site\`, commits via GitHub Desktop, pushes, and deploys with `git pull` on the server — no manual file copying onto the server.
 
