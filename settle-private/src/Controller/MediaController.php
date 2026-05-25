@@ -11,6 +11,9 @@ final class MediaController extends BaseController
     /** Items per page in the library browser. */
     private const PER_PAGE = 24;
 
+    /** Items in the editor's image picker — show more, fewer pages. */
+    private const PICKER_LIMIT = 200;
+
     public function index(): void
     {
         $page = max(1, (int)$this->input('p', 1));
@@ -103,9 +106,50 @@ final class MediaController extends BaseController
     }
 
     /**
+     * Picker view rendered inside TinyMCE's modal iframe. Shows a flat grid of
+     * recent images (no pagination — the editor user can navigate to the full
+     * library if they need more). Renders WITHOUT the admin layout because the
+     * iframe needs a clean standalone document.
+     */
+    public function picker(): void
+    {
+        $result = Media::paginate(1, self::PICKER_LIMIT);
+        \Settle\View::render('admin/media/picker', [
+            'items' => $result['items'],
+        ]);   // no layout — picker.php is a standalone HTML document
+    }
+
+    /**
+     * Receives a drag-drop or paste-image upload from the TinyMCE editor.
+     * Returns JSON: { "location": "/uploads/..." } on success,
+     *               { "error":    "..." } on failure.
+     */
+    public function uploadFromEditor(): void
+    {
+        header('Content-Type: application/json');
+
+        $file = $_FILES['file'] ?? null;
+        if (!is_array($file)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'No file received.']);
+            return;
+        }
+
+        $result = Upload::handle($file, $this->uploadRoot());
+        if (!$result['ok']) {
+            http_response_code(400);
+            echo json_encode(['error' => $result['error']]);
+            return;
+        }
+
+        Media::create($result['data'], (int)$_SESSION['user_id']);
+        echo json_encode([
+            'location' => '/uploads/' . $result['data']['filename'],
+        ]);
+    }
+
+    /**
      * Absolute path to the public uploads directory.
-     * Resolves relative to settle-private/ so it always points at the right
-     * place regardless of where the front controller is invoked from.
      */
     private function uploadRoot(): string
     {

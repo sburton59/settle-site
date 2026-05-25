@@ -42,10 +42,12 @@ $router->post('/admin/pages/{id}/hide',  [PagesController::class, 'toggleHide'],
 
 // Media Library — all authenticated users can browse and upload.
 // Authors can only delete their own uploads (enforced inside the controller).
-$router->get ('/admin/media',                 [MediaController::class, 'index'],   ['auth' => true]);
-$router->post('/admin/media',                 [MediaController::class, 'upload'],  ['auth' => true]);
-$router->get ('/admin/media/{id}/edit',       [MediaController::class, 'edit'],    ['auth' => true]);
-$router->post('/admin/media/{id}',            [MediaController::class, 'update'],  ['auth' => true]);
-$router->post('/admin/media/{id}/delete',     [MediaController::class, 'destroy'], ['auth' => true]);
+$router->get ('/admin/media',                       [MediaController::class, 'index'],            ['auth' => true]);
+$router->post('/admin/media',                       [MediaController::class, 'upload'],           ['auth' => true]);
+$router->get ('/admin/media/picker',                [MediaController::class, 'picker'],           ['auth' => true]);
+$router->post('/admin/media/upload-from-editor',    [MediaController::class, 'uploadFromEditor'], ['auth' => true]);
+$router->get ('/admin/media/{id}/edit',             [MediaController::class, 'edit'],             ['auth' => true]);
+$router->post('/admin/media/{id}',                  [MediaController::class, 'update'],           ['auth' => true]);
+$router->post('/admin/media/{id}/delete',           [MediaController::class, 'destroy'],          ['auth' => true]);
 
 $router->dispatch();
