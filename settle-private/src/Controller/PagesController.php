@@ -35,7 +35,7 @@ final class PagesController extends BaseController
         }
         $id = Page::create($data, (int)$_SESSION['user_id']);
         $this->flash('success', 'Page created.');
-        $this->redirect("/admin/pages/$id/edit");
+        $this->redirect($this->editUrl($id));
     }
 
     public function edit(array $params): void
@@ -67,7 +67,7 @@ final class PagesController extends BaseController
         }
         Page::update($id, $data, (int)$_SESSION['user_id']);
         $this->flash('success', 'Page saved.');
-        $this->redirect("/admin/pages/$id/edit");
+        $this->redirect($this->editUrl($id));
     }
 
     public function toggleHide(array $params): void
@@ -75,6 +75,20 @@ final class PagesController extends BaseController
         Page::togglePublished((int)$params['id'], (int)$_SESSION['user_id']);
         $this->flash('success', 'Page visibility updated.');
         $this->redirect('/admin/pages');
+    }
+
+    /**
+     * Build the post-save redirect URL. If the user clicked "Save & Preview"
+     * (which sets a `preview=1` hidden field), append that to the URL so the
+     * edit template knows to pop open the public-facing page in a new tab.
+     */
+    private function editUrl(int $id): string
+    {
+        $url = "/admin/pages/$id/edit";
+        if (!empty($_POST['preview'])) {
+            $url .= '?preview=1';
+        }
+        return $url;
     }
 
     private function collectFormData(): array

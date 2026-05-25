@@ -4,14 +4,25 @@
 /** @var array $errors */
 $errors = $errors ?? [];
 $action = $isNew ? '/admin/pages' : '/admin/pages/' . (int)$page['id'];
+
+// If we just came back from a "Save & Preview" submit, the controller
+// redirects with ?preview=1 — pick that up here to trigger the JS that
+// opens the public page in a new tab.
+$autoPreview = !empty($_GET['preview']);
 ?>
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1em;">
     <h1 style="margin:0;"><?= $isNew ? 'New Page' : 'Editing: ' . htmlspecialchars($page['title'], ENT_QUOTES) ?></h1>
     <a href="/admin/pages">← Back to Pages</a>
 </div>
 
-<form method="post" action="<?= htmlspecialchars($action, ENT_QUOTES) ?>" data-warn-unsaved>
+<form method="post" action="<?= htmlspecialchars($action, ENT_QUOTES) ?>" data-warn-unsaved id="page-form">
     <?= \Settle\Csrf::field() ?>
+
+    <!--
+      Set by the "Save & Preview" button's JS click handler. The default
+      "Save Changes" button leaves it empty, so behavior is unchanged.
+    -->
+    <input type="hidden" name="preview" id="preview-flag" value="">
 
     <label>Title
         <input type="text" name="title" required
@@ -56,7 +67,14 @@ $action = $isNew ? '/admin/pages' : '/admin/pages/' . (int)$page['id'];
     <div style="margin-top:1.5em;">
         <button type="submit" class="btn-primary"><?= $isNew ? 'Create Page' : 'Save Changes' ?></button>
         <?php if (!$isNew): ?>
-            <a href="/page/<?= htmlspecialchars($page['slug'], ENT_QUOTES) ?>" target="_blank" style="margin-left:1em;">Preview ↗</a>
+            <button type="submit" id="save-and-preview" class="btn-primary"
+                    style="margin-left:0.5em; background:var(--gray-700);">
+                Save &amp; Preview ↗
+            </button>
+            <a href="/page/<?= htmlspecialchars($page['slug'], ENT_QUOTES) ?>" target="_blank"
+               style="margin-left:1em;" class="muted">
+                View published page ↗
+            </a>
         <?php endif; ?>
     </div>
 </form>
@@ -70,6 +88,26 @@ $action = $isNew ? '/admin/pages' : '/admin/pages/' . (int)$page['id'];
 (function () {
     'use strict';
 
+    // ----- Save & Preview wiring ---------------------------------------
+    // When the user clicks "Save & Preview", set the hidden flag before
+    // the form submits naturally. The controller picks it up and redirects
+    // back to this page with ?preview=1, which triggers the popup below.
+    var previewBtn = document.getElementById('save-and-preview');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', function () {
+            document.getElementById('preview-flag').value = '1';
+        });
+    }
+
+    // If we just came back from a successful "Save & Preview", pop the
+    // public page in a new tab. Use a slight delay so the browser doesn't
+    // block it as an automatic popup.
+    <?php if ($autoPreview && !$isNew): ?>
+    setTimeout(function () {
+        window.open('/page/<?= addslashes($page['slug']) ?>', '_blank');
+    }, 200);
+    <?php endif; ?>
+
     // Get the CSRF token from any existing form on the page — we need it
     // for the drag-drop upload handler.
     var csrfToken = (function () {
@@ -79,12 +117,12 @@ $action = $isNew ? '/admin/pages' : '/admin/pages/' . (int)$page['id'];
 
     tinymce.init({
         selector: '#page-body',
-        license_key: 'gpl',           // we are using the open-source build
-        promotion: false,             // hide "upgrade to premium" buttons
-        branding: false,              // hide "Powered by TinyMCE" footer
+        license_key: 'gpl',
+        promotion: false,
+        branding: false,
 
         height: 500,
-        menubar: false,               // less clutter
+        menubar: false,
         plugins: 'lists link image code autoresize paste',
         toolbar:
             'undo redo | blocks | bold italic | bullist numlist | ' +
@@ -92,17 +130,13 @@ $action = $isNew ? '/admin/pages' : '/admin/pages/' . (int)$page['id'];
         block_formats:
             'Paragraph=p; Heading=h2; Subheading=h3; Quote=blockquote',
         relative_urls: false,
-        remove_script_host: true,     // for inserted media URLs
+        remove_script_host: true,
 
-        // Smart paste from Word/Google Docs — strip pasted styles aggressively.
         paste_as_text: false,
         paste_data_images: false,
         paste_remove_styles_if_webkit: true,
         paste_webkit_styles: 'none',
 
-        // Drag-and-drop / paste-image upload handler.
-        // Posts the file to /admin/media/upload-from-editor and expects
-        // a JSON response: { "location": "/uploads/2026/05/xxxx.jpg" }
         images_upload_handler: function (blobInfo, progress) {
             return new Promise(function (resolve, reject) {
                 var xhr = new XMLHttpRequest();
@@ -137,7 +171,6 @@ $action = $isNew ? '/admin/pages' : '/admin/pages/' . (int)$page['id'];
             });
         },
 
-        // Custom toolbar button that opens our Media Library in a modal.
         setup: function (editor) {
             editor.ui.registry.addButton('mediaLibraryButton', {
                 icon: 'gallery',
@@ -148,8 +181,6 @@ $action = $isNew ? '/admin/pages' : '/admin/pages/' . (int)$page['id'];
                         url: '/admin/media/picker',
                         width: 900,
                         height: 600,
-                        // The iframe at /admin/media/picker posts a message
-                        // back when an image is selected (see picker.php).
                         onMessage: function (api, details) {
                             if (details.mceAction === 'insertImage' && details.url) {
                                 editor.insertContent(
@@ -165,8 +196,6 @@ $action = $isNew ? '/admin/pages' : '/admin/pages/' . (int)$page['id'];
             });
         },
 
-        // Save TinyMCE state back to the textarea on form submit so the
-        // 'data-warn-unsaved' handler in admin.js sees the change.
         save_enablewhendirty: true,
     });
 })();
