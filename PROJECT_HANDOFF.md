@@ -1,6 +1,8 @@
 # **Settle Memorial UMC Website Modernization — Project Handoff**
 
-**Document version:** 1.1 **Date prepared:** May 24, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
+**Document version:** 1.2 **Date prepared:** May 24, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
+
+**Changes in v1.2:** Homepage Slideshow shipped (drag-to-reorder admin). WYSIWYG editor (TinyMCE) shipped for Pages, with Media Library integration (browse-and-pick + drag-drop upload) and a Save-and-Preview workflow. Router now accepts CSRF tokens from an `X-CSRF-Token` header for JS-driven endpoints (in addition to the standard `_csrf` form field).
 
 **Changes in v1.1:** Media Library shipped (moved from roadmap to working features). GitHub repo set up at `https://github.com/sburton59/settle-site`. Server now uses a symlink-based deploy from a GitHub clone — see §8 for the new workflow.
 
@@ -12,7 +14,7 @@ Settle Memorial United Methodist Church (Owensboro, Kentucky) is replacing its e
 
 The new site is being built from scratch — no framework, no WordPress, no CMS dependency — using plain PHP 8.1+ and MySQL/MariaDB. The end result must be (a) secure, (b) inexpensive to maintain, and (c) operable by non-technical church staff through a clean admin panel.
 
-Current status as of handoff: **Pages CRUD and Media Library both working end-to-end.** A fresh staff member can log in, edit pages, and upload/manage images. Remaining proposal features (blog, slideshow, staff directory, Google Calendar, prayer requests, contact form, public theming) are designed and database-modeled but not yet implemented. The roadmap is in §10.
+Current status as of handoff: **Pages CRUD, Media Library, WYSIWYG editor, and Homepage Slideshow all working end-to-end.** A staff member can log in, edit pages with a real WYSIWYG editor, upload and manage images, and manage the homepage slideshow including reordering by drag-and-drop. Remaining proposal features (multi-author blog, Google Calendar, staff directory, prayer requests, contact form, public-side theming) are designed and database-modeled but not yet implemented. The roadmap is in §10.
 
 ---
 
@@ -179,13 +181,15 @@ settle-private/                        ← Outside web root; not URL-accessible
 │   │   ├── BaseController.php         ← Shared render/redirect/flash/input helpers  
 │   │   ├── AuthController.php         ← Login/logout endpoints  
 │   │   ├── DashboardController.php    ← Admin home screen  
-│   │   ├── PagesController.php        ← Pages CRUD (fully implemented)  
-│   │   ├── MediaController.php        ← Media Library CRUD (fully implemented)  
+│   │   ├── PagesController.php        ← Pages CRUD (fully implemented) + Save-and-Preview  
+│   │   ├── MediaController.php        ← Media Library CRUD + picker iframe + editor-upload (fully implemented)  
+│   │   ├── SlideshowController.php    ← Homepage slideshow CRUD + reorder + toggle (fully implemented)  
 │   │   └── PublicController.php       ← Public homepage and /page/{slug}  
 │   └── Model/  
 │       ├── User.php                   ← User lookup, password updates, last-login touch  
 │       ├── Page.php                   ← Page CRUD with slug uniqueness  
-│       └── Media.php                  ← Media library DB queries + pagination  
+│       ├── Media.php                  ← Media library DB queries + pagination  
+│       └── Slideshow.php              ← Slideshow CRUD + transactional reorder  
 ├── templates/  
 │   ├── layout/  
 │   │   ├── admin.php                  ← Sidebar \+ content shell  
@@ -195,10 +199,14 @@ settle-private/                        ← Outside web root; not URL-accessible
 │   │   ├── dashboard.php              ← Stub welcome screen  
 │   │   ├── pages/  
 │   │   │   ├── index.php              ← Pages list with hide/show toggle  
-│   │   │   └── edit.php               ← Pages create/edit form  
-│   │   └── media/  
-│   │       ├── index.php              ← Library grid + upload form, paginated  
-│   │       └── edit.php               ← Image preview + metadata form + delete  
+│   │   │   └── edit.php               ← Pages create/edit form, TinyMCE-powered  
+│   │   ├── media/  
+│   │   │   ├── index.php              ← Library grid + upload form, paginated  
+│   │   │   ├── edit.php               ← Image preview + metadata form + delete  
+│   │   │   └── picker.php             ← Iframe modal — used by TinyMCE and slideshow editor  
+│   │   └── slideshow/  
+│   │       ├── index.php              ← Drag-to-reorder list (SortableJS)  
+│   │       └── edit.php               ← Add/edit form with image picker modal  
 │   └── public/  
 │       ├── home.php                   ← Stub homepage rendering the About page body  
 │       └── page.php                   ← Generic public page renderer  
@@ -229,7 +237,9 @@ The router is the central nervous system. It loads middleware (auth, role), enfo
 * ✅ Login screen with error messaging  
 * ✅ Dashboard placeholder  
 * ✅ **Pages: full CRUD** — list, create, edit, save, hide/show. Validates slug uniqueness and format. Auto-updates `updated_by` and `updated_at`.  
-* ✅ **Media Library: full CRUD** — upload, browse (paginated grid), edit metadata (alt text + caption), delete. Server-side MIME detection, 10MB cap, auto-resize images down to 2000px on long edge using GD. Files stored under `uploads/YYYY/MM/<random>.<ext>`. PDF supported alongside JPEG/PNG/GIF/WebP. Authors can only delete their own uploads.  
+* ✅ **WYSIWYG editor on Pages** — TinyMCE 7 loaded from jsdelivr CDN (open-source build, no API key). Toolbar: undo/redo, blocks (paragraph/H2/H3/quote), bold/italic, lists, link, image, Media Library picker, code. Drag-and-drop image upload routed through Media Library. Paste from Word/Google Docs is style-stripped. Save-and-Preview button opens the public page in a new tab after save.  
+* ✅ **Media Library: full CRUD** — upload, browse (paginated grid), edit metadata (alt text + caption), delete. Server-side MIME detection, 10MB cap, auto-resize images down to 2000px on long edge using GD. Files stored under `uploads/YYYY/MM/<random>.<ext>`. PDF supported alongside JPEG/PNG/GIF/WebP. Authors can only delete their own uploads. Picker iframe template reused across TinyMCE and Slideshow editor.  
+* ✅ **Homepage Slideshow: full admin CRUD** — add slide (pick from Media Library), edit (caption, link URL, active toggle), drag-to-reorder via SortableJS, delete. Reorder commits in a single transaction so partial failures don't leave the order half-applied. **Note:** admin side complete; public-side rendering will be added with the public theming work (item #4 on the roadmap).  
 * ✅ Public-facing page rendering at `/page/{slug}`  
 * ✅ Stub homepage that renders the About page body
 
@@ -238,7 +248,6 @@ The router is the central nervous system. It loads middleware (auth, role), enfo
 These tables exist in the schema and screens were wireframed in the admin panel design, but no controllers, models, or templates exist yet:
 
 * ⏳ **Blog Posts** (multi-author, with featured images and inline media). Schema: `posts`, `post_media`. Highest priority — the proposal calls this out specifically.  
-* ⏳ **Homepage Slideshow** (drag-to-reorder, activate/deactivate). Schema: `slideshow_slides`.  
 * ⏳ **Staff Directory** management (the public-facing staff page exists conceptually but no admin UI yet). Schema: `staff`.  
 * ⏳ **Google Calendar Integration** (sync job, calendar page, upcoming-events widget). Schema: `calendar_events_cache`, `calendar_event_overrides`. Requires a Google Calendar API key and either a cron job or scheduled-task hook.  
 * ⏳ **Prayer Requests** (intake form \+ admin inbox). Schema: `prayer_requests`.  
@@ -246,8 +255,7 @@ These tables exist in the schema and screens were wireframed in the admin panel 
 * ⏳ **Settings UI** (Settings table exists; needs an admin screen). Schema: `settings`.  
 * ⏳ **User Management UI** (admin-only; add/remove users, reset passwords).  
 * ⏳ **Activity Log viewer** (admin-only). Schema: `audit_log`. Note: nothing currently writes to `audit_log` — that needs hooking into the relevant controller actions when implemented.  
-* ⏳ **Public-facing site theming** — the public templates are deliberately minimal. The real site needs the brand red, the script logo, the rotating slideshow, the upcoming-events strip, the footer with address and social links.  
-* ⏳ **WYSIWYG editor** for page/post content. Currently a plain `<textarea>` with HTML. Recommended: TinyMCE (free tier) or Quill.
+* ⏳ **Public-facing site theming** — the public templates are deliberately minimal. The real site needs the brand red, the script logo, the rotating slideshow (the data is now manageable in admin; the public render is still TODO), the upcoming-events strip, the footer with address and social links.
 
 ### **Known design considerations not yet addressed**
 
@@ -314,7 +322,7 @@ The day-to-day rhythm:
 * **Naming:** `PascalCase` for classes, `camelCase` for methods, `snake_case` for database columns.  
 * **No global state** except the `$GLOBALS['settle_config']` config and the `Database` singleton. Everything else is dependency-free.  
 * **Templates** are `.php` files in `settle-private/templates/`. They receive `$data` as local variables via `extract()`. Always escape output with `htmlspecialchars` or the provided `e()` helper, except `body_html` columns which are intentionally trusted.  
-* **CSRF token field** is rendered via `\Settle\Csrf::field()` inside every `<form method="post">`.  
+* **CSRF token field** is rendered via `\Settle\Csrf::field()` inside every `<form method="post">`. For JS-driven endpoints that POST JSON (e.g. the slideshow reorder), the token is sent in the `X-CSRF-Token` header instead — the Router accepts either source.  
 * **Redirects** go through `BaseController::redirect()` to ensure consistent exit behavior.  
 * **Database writes** always set `updated_by` to the current `$_SESSION['user_id']` for audit trail purposes.
 
@@ -326,24 +334,22 @@ In rough order of value-to-effort. Time estimates assume a single developer (or 
 
 | Priority | Feature | Est. Effort | Why |
 | ----- | ----- | ----- | ----- |
-| 1 | **WYSIWYG editor on Pages** | 0.5 day | Massive UX win for staff. Integrate TinyMCE or Quill. |
-| 2 | **Homepage Slideshow management** | 0.5 day | Proposal-promised feature. Drag-to-reorder. Builds on Media Library. |
-| 3 | **Staff Directory CRUD \+ public page** | 1 day | Replaces existing site's staff page. Uses Media Library for photos. |
-| 4 | **Public theming** (real homepage, header, footer, brand styles) | 2–3 days | Site needs to actually look like Settle Memorial. |
-| 5 | **Google Calendar sync \+ display** | 2 days | Proposal-promised feature. Includes API setup, sync job, calendar page, upcoming-events widget. |
-| 6 | **Blog Posts (multi-author CRUD \+ public listing)** | 2 days | Proposal-promised feature. Uses Media Library for inline + featured images. |
-| 7 | **Prayer Requests form \+ admin inbox** | 0.5 day | Simple. |
-| 8 | **Contact form \+ admin inbox** | 0.5 day | Simple. |
-| 9 | **Settings UI** | 0.5 day | Removes the need to edit DB directly. |
-| 10 | **User management UI** | 0.5 day | Currently requires DB edits. |
-| 11 | **Email sending** (password reset, notifications) | 1 day | Needed for production. |
-| 12 | **Audit log hooks \+ viewer** | 0.5 day | Wire `audit_log` table into write paths. |
-| 13 | **Rate-limit login attempts** | 0.25 day | Simple security hardening. |
-| 14 | **Thumbnail variants for Media Library** | 0.5 day | Currently grid uses full-size images. Generate 300px thumb on upload. |
-| 15 | **Migration of existing content** | 1–2 days | Bulk-import current settleumc.com text \+ images into the new system. |
-| 16 | **Tests** | ongoing | PHPUnit for models/controllers; Playwright for end-to-end. |
+| 1 | **Staff Directory CRUD \+ public page** | 1 day | Replaces existing site's staff page. Uses Media Library for photos. |
+| 2 | **Prayer Requests form \+ admin inbox** | 0.5 day | Simple, proposal-promised. |
+| 3 | **Contact form \+ admin inbox** | 0.5 day | Simple, proposal-promised. |
+| 4 | **Public theming** (real homepage, header, footer, brand styles, slideshow render) | 2–3 days | Site needs to actually look like Settle Memorial. Public-side slideshow renders here. |
+| 5 | **Google Calendar sync \+ display** | 2 days | Proposal-promised. Includes API setup, sync job, calendar page, upcoming-events widget. |
+| 6 | **Blog Posts (multi-author CRUD \+ public listing)** | 2 days | Proposal-promised. Uses Media Library for inline + featured images. |
+| 7 | **Settings UI** | 0.5 day | Removes the need to edit DB directly. |
+| 8 | **User management UI** | 0.5 day | Currently requires DB edits. |
+| 9 | **Email sending** (password reset, notifications) | 1 day | Needed for production. |
+| 10 | **Audit log hooks \+ viewer** | 0.5 day | Wire `audit_log` table into write paths. |
+| 11 | **Rate-limit login attempts** | 0.25 day | Simple security hardening. |
+| 12 | **Thumbnail variants for Media Library** | 0.5 day | Currently grid uses full-size images. Generate 300px thumb on upload. |
+| 13 | **Migration of existing content** | 1–2 days | Bulk-import current settleumc.com text \+ images into the new system. |
+| 14 | **Tests** | ongoing | PHPUnit for models/controllers; Playwright for end-to-end. |
 
-**Recommended sequence for the next session:** WYSIWYG editor (#1) → Slideshow (#2) → Staff Directory (#3). The slideshow and staff directory both build on the Media Library that's already in place, so they're efficient follow-ons. Public theming (#4) could also be pulled forward if visual progress matters for stakeholder buy-in.
+**Recommended sequence for the next session:** Staff Directory (#1) → Prayer Requests (#2) → Contact form (#3) → Public theming (#4). This finishes off all the admin features before doing the public-side visual work in one focused pass. Public theming will be where the slideshow finally renders for visitors.
 
 ---
 
