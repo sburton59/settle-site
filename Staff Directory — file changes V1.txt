@@ -1,0 +1,99 @@
+═══════════════════════════════════════════════════════════════════════
+  Staff Directory — file changes summary
+═══════════════════════════════════════════════════════════════════════
+
+This feature adds two small edits to existing files plus several new files.
+The edits are below; new files are in their respective directories.
+
+
+───────────────────────────────────────────────────────────────────────
+  1. public_html/Settle/index.php
+───────────────────────────────────────────────────────────────────────
+
+Add ONE line to the `use` block at the top, alongside the existing
+controller imports:
+
+    use Settle\Controller\StaffController;
+
+Then add the following block of routes. Place it AFTER the Slideshow
+routes and BEFORE the final `$router->dispatch();` line:
+
+    // Public Staff page
+    $router->get('/staff', [PublicController::class, 'staff']);
+
+    // Staff Directory — editor+ only (it's website content).
+    $router->get ('/admin/staff',              [StaffController::class, 'index'],   ['auth' => true, 'role' => 'editor']);
+    $router->get ('/admin/staff/new',          [StaffController::class, 'create'],  ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/staff',              [StaffController::class, 'store'],   ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/staff/reorder',      [StaffController::class, 'reorder'], ['auth' => true, 'role' => 'editor']);
+    $router->get ('/admin/staff/{id}/edit',    [StaffController::class, 'edit'],    ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/staff/{id}',         [StaffController::class, 'update'],  ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/staff/{id}/toggle',  [StaffController::class, 'toggle'],  ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/staff/{id}/delete',  [StaffController::class, 'destroy'], ['auth' => true, 'role' => 'editor']);
+
+
+───────────────────────────────────────────────────────────────────────
+  2. settle-private/src/Controller/PublicController.php
+───────────────────────────────────────────────────────────────────────
+
+Add ONE new method to the existing PublicController class. Place it
+next to the existing home() and page() methods:
+
+    public function staff(): void
+    {
+        $staff = \Settle\Model\Staff::allVisible();
+        $this->render('public/staff', ['staff' => $staff], 'public');
+    }
+
+
+───────────────────────────────────────────────────────────────────────
+  3. public_html/Settle/assets/css/admin.css
+───────────────────────────────────────────────────────────────────────
+
+Append the CSS block from `admin-css-additions.css` to the END of the
+existing admin.css. No existing rules need to change.
+
+
+───────────────────────────────────────────────────────────────────────
+  4. public_html/Settle/assets/js/admin.js
+───────────────────────────────────────────────────────────────────────
+
+Append the JavaScript block from `admin-js-additions.js` to the END of
+the existing admin.js. No existing code needs to change. The new block
+is wrapped in its own IIFE so it can't collide with anything above.
+
+
+───────────────────────────────────────────────────────────────────────
+  New files (drop into the matching locations)
+───────────────────────────────────────────────────────────────────────
+
+    settle-private/src/Model/Staff.php
+    settle-private/src/Controller/StaffController.php
+    settle-private/src/EmailObfuscator.php
+    settle-private/templates/admin/staff/index.php
+    settle-private/templates/admin/staff/edit.php
+    settle-private/templates/public/staff.php
+    public_html/Settle/assets/img/silhouette.svg
+
+
+───────────────────────────────────────────────────────────────────────
+  Database
+───────────────────────────────────────────────────────────────────────
+
+No schema changes. The `staff` table from the original schema.sql
+already has every column needed (full_name, title, email, phone,
+bio_html, photo_media_id, sort_order, is_visible, plus timestamps).
+
+
+───────────────────────────────────────────────────────────────────────
+  PROJECT_HANDOFF.md updates (for v1.3)
+───────────────────────────────────────────────────────────────────────
+
+Update §7 "Fully working end-to-end":
+  + Staff Directory: full CRUD with drag-to-reorder, optional bio,
+    optional photo with silhouette fallback, public card grid.
+  + Email obfuscation via \Settle\EmailObfuscator (XOR-hex + JS reveal).
+
+Update §10 Roadmap:
+  - Remove priority #1 (Staff Directory) — shipped.
+  + Bump remaining items up one slot.

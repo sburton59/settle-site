@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="No photo available">
+  <!-- Background -->
+  <rect width="200" height="200" fill="#e5e5e5"/>
+  <!-- Head -->
+  <circle cx="100" cy="78" r="32" fill="#b8b8b8"/>
+  <!-- Shoulders / torso -->
+  <path d="M 38 200
+           C 38 152, 62 124, 100 124
+           C 138 124, 162 152, 162 200
+           Z"
+        fill="#b8b8b8"/>
+</svg>

@@ -18,6 +18,7 @@ use Settle\Controller\PagesController;
 use Settle\Controller\MediaController;
 use Settle\Controller\SlideshowController;
 use Settle\Controller\PublicController;
+use Settle\Controller\StaffController;
 
 $router = new Router();
 
@@ -60,5 +61,18 @@ $router->get ('/admin/slideshow/{id}/edit',       [SlideshowController::class, '
 $router->post('/admin/slideshow/{id}',            [SlideshowController::class, 'update'],   ['auth' => true, 'role' => 'editor']);
 $router->post('/admin/slideshow/{id}/toggle',     [SlideshowController::class, 'toggle'],   ['auth' => true, 'role' => 'editor']);
 $router->post('/admin/slideshow/{id}/delete',     [SlideshowController::class, 'destroy'],  ['auth' => true, 'role' => 'editor']);
+
+// Public Staff page
+$router->get('/staff', [PublicController::class, 'staff']);
+
+// Staff Directory — editor+ only (it's website content).
+$router->get ('/admin/staff',              [StaffController::class, 'index'],   ['auth' => true, 'role' => 'editor']);
+$router->get ('/admin/staff/new',          [StaffController::class, 'create'],  ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/staff',              [StaffController::class, 'store'],   ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/staff/reorder',      [StaffController::class, 'reorder'], ['auth' => true, 'role' => 'editor']);
+$router->get ('/admin/staff/{id}/edit',    [StaffController::class, 'edit'],    ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/staff/{id}',         [StaffController::class, 'update'],  ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/staff/{id}/toggle',  [StaffController::class, 'toggle'],  ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/staff/{id}/delete',  [StaffController::class, 'destroy'], ['auth' => true, 'role' => 'editor']);
 
 $router->dispatch();

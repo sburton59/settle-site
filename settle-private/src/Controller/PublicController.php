@@ -23,4 +23,9 @@ final class PublicController extends BaseController
         if (!$page) { http_response_code(404); echo 'Page not found.'; return; }
         $this->render('public/page', ['page' => $page], 'public');
     }
+    public function staff(): void
+    {
+        $staff = \Settle\Model\Staff::allVisible();
+        $this->render('public/staff', ['staff' => $staff], 'public');
+    }
 }
