@@ -1,13 +1,15 @@
 <?php
 /** @var array $items */
 /**
- * Media Picker — rendered inside an iframe by TinyMCE.
+ * Media Picker — rendered inside an iframe by TinyMCE or any other modal.
  *
- * Clicking an image posts a message back to the parent window via TinyMCE's
- * window-message API so the editor can insert the image at the cursor.
+ * Clicking an image posts a message back to the parent window with:
+ *   { mceAction: 'insertImage', url, alt, mediaId }
  *
- * This is a self-contained HTML document (NOT wrapped in the admin layout)
- * since it lives inside a modal iframe.
+ * - TinyMCE's editor uses url+alt to insert <img>.
+ * - The slideshow edit form uses mediaId to populate its hidden media_id field.
+ *
+ * Standalone HTML document (not wrapped in admin layout).
  */
 ?>
 <!doctype html>
@@ -73,12 +75,13 @@
         <?php foreach ($items as $m): ?>
             <?php
                 $isImage = strpos((string)$m['mime_type'], 'image/') === 0;
-                if (!$isImage) continue;   // picker only shows images
-                $url = '/uploads/' . htmlspecialchars($m['filename'], ENT_QUOTES);
-                $alt = htmlspecialchars($m['alt_text'] ?? '', ENT_QUOTES);
+                if (!$isImage) continue;
+                $url  = '/uploads/' . htmlspecialchars($m['filename'], ENT_QUOTES);
+                $alt  = htmlspecialchars($m['alt_text'] ?? '', ENT_QUOTES);
                 $name = htmlspecialchars($m['original_name'], ENT_QUOTES);
             ?>
             <div class="tile"
+                 data-media-id="<?= (int)$m['id'] ?>"
                  data-url="<?= $url ?>"
                  data-alt="<?= $alt ?>"
                  title="<?= $name ?>">
@@ -94,18 +97,13 @@
 <script>
 (function () {
     'use strict';
-
-    // Talk to the parent window using TinyMCE's window-message protocol.
-    // When a tile is clicked, we post a message that the editor's onMessage
-    // handler picks up.
     document.querySelectorAll('.tile').forEach(function (tile) {
         tile.addEventListener('click', function () {
-            var url = tile.getAttribute('data-url');
-            var alt = tile.getAttribute('data-alt');
             window.parent.postMessage({
                 mceAction: 'insertImage',
-                url: url,
-                alt: alt,
+                url:     tile.getAttribute('data-url'),
+                alt:     tile.getAttribute('data-alt'),
+                mediaId: parseInt(tile.getAttribute('data-media-id'), 10),
             }, '*');
         });
     });

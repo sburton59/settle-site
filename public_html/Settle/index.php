@@ -16,6 +16,7 @@ use Settle\Controller\AuthController;
 use Settle\Controller\DashboardController;
 use Settle\Controller\PagesController;
 use Settle\Controller\MediaController;
+use Settle\Controller\SlideshowController;
 use Settle\Controller\PublicController;
 
 $router = new Router();
@@ -49,5 +50,15 @@ $router->post('/admin/media/upload-from-editor',    [MediaController::class, 'up
 $router->get ('/admin/media/{id}/edit',             [MediaController::class, 'edit'],             ['auth' => true]);
 $router->post('/admin/media/{id}',                  [MediaController::class, 'update'],           ['auth' => true]);
 $router->post('/admin/media/{id}/delete',           [MediaController::class, 'destroy'],          ['auth' => true]);
+
+// Slideshow — editor+ only (it's homepage chrome).
+$router->get ('/admin/slideshow',                 [SlideshowController::class, 'index'],    ['auth' => true, 'role' => 'editor']);
+$router->get ('/admin/slideshow/new',             [SlideshowController::class, 'create'],   ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/slideshow',                 [SlideshowController::class, 'store'],    ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/slideshow/reorder',         [SlideshowController::class, 'reorder'],  ['auth' => true, 'role' => 'editor']);
+$router->get ('/admin/slideshow/{id}/edit',       [SlideshowController::class, 'edit'],     ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/slideshow/{id}',            [SlideshowController::class, 'update'],   ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/slideshow/{id}/toggle',     [SlideshowController::class, 'toggle'],   ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/slideshow/{id}/delete',     [SlideshowController::class, 'destroy'],  ['auth' => true, 'role' => 'editor']);
 
 $router->dispatch();

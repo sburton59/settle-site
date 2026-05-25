@@ -57,11 +57,18 @@ final class Router
                 echo 'Forbidden.';
                 return;
             }
-            // CSRF on every POST
-            if ($method === 'POST' && !Csrf::verify((string)($_POST['_csrf'] ?? ''))) {
-                http_response_code(419);
-                echo 'Session expired. Please go back and try again.';
-                return;
+            // CSRF on every POST. Token can come from a form field (standard
+            // browser form submit) or from an X-CSRF-Token header (used by
+            // JSON-fetching JS handlers like the slideshow reorder).
+            if ($method === 'POST') {
+                $token = (string)($_POST['_csrf']
+                    ?? $_SERVER['HTTP_X_CSRF_TOKEN']
+                    ?? '');
+                if (!Csrf::verify($token)) {
+                    http_response_code(419);
+                    echo 'Session expired. Please go back and try again.';
+                    return;
+                }
             }
 
             // Build named params from regex matches
