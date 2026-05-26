@@ -37,9 +37,9 @@
               <?php if (!empty($p['email'])): ?>
                 <div><?= \Settle\EmailObfuscator::link($p['email']) ?></div>
               <?php endif; ?>
-              <?php if (!empty($p['phone'])): ?>
-                <div><a href="tel:<?= htmlspecialchars(preg_replace('/[^0-9+]/', '', $p['phone']), ENT_QUOTES) ?>">
-                  <?= htmlspecialchars($p['phone'], ENT_QUOTES) ?>
+			<?php if (!empty($p['phone'])): ?>
+                <div><a href="tel:<?= htmlspecialchars(\Settle\PhoneFormatter::telHref($p['phone']), ENT_QUOTES) ?>">
+                  <?= htmlspecialchars(\Settle\PhoneFormatter::formatUs($p['phone']), ENT_QUOTES) ?>
                 </a></div>
               <?php endif; ?>
             </div>
