@@ -9,6 +9,9 @@ Thumbs.db
 *.swp
 *~
 
+# Notes folder
+_notes/
+
 # Configuration with secrets — never commit
 settle-private/config/config.php
 
