@@ -30,7 +30,14 @@
 				<?= (int)$_prayerCounts['new'] ?>
 			</span>
 		<?php endif; ?>
-</a>    <a href="/admin/contact">Contact Messages</a>
+	</a>
+	<?php $contactUnread = \Settle\Model\ContactMessage::countUnread(); ?>
+	<a href="/admin/contact">
+	  Contact Messages
+	  <?php if ($contactUnread > 0): ?>
+		<span class="nav-badge"><?= $contactUnread ?></span>
+	  <?php endif; ?>
+	</a>
   </nav>
   <div class="signin">
     Signed in as <strong><?= htmlspecialchars($_user['display'] ?? '', ENT_QUOTES) ?></strong>
