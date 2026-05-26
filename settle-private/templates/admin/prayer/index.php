@@ -90,7 +90,7 @@ $statusLabels = [
                 <div style="color:#555; font-size:0.95em; line-height:1.4;
                             overflow:hidden; display:-webkit-box;
                             -webkit-line-clamp:2; -webkit-box-orient:vertical;">
-                    <?php if ($isPrivate && !$canReveal): ?>
+                    <?php if ($isPrivate): ?>
                         <em class="muted">[Private — request text is hidden]</em>
                     <?php else: ?>
                         <?php
