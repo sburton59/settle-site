@@ -129,5 +129,5 @@
   <style>
     .sortable-ghost { opacity: 0.3; }
   </style>
-
+  
 <?php endif; ?>
