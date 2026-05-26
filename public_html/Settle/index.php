@@ -20,6 +20,7 @@ use Settle\Controller\SlideshowController;
 use Settle\Controller\PublicController;
 use Settle\Controller\StaffController;
 use Settle\Controller\PrayerRequestController;
+use Settle\Controller\ContactMessageController;
 
 $router = new Router();
 
@@ -86,5 +87,14 @@ $router->get ('/admin/prayer',                [PrayerRequestController::class, '
 $router->get ('/admin/prayer/{id}',           [PrayerRequestController::class, 'show'],         ['auth' => true]);
 $router->post('/admin/prayer/{id}/status',    [PrayerRequestController::class, 'updateStatus'], ['auth' => true, 'role' => 'editor']);
 $router->post('/admin/prayer/{id}/delete',    [PrayerRequestController::class, 'destroy'],      ['auth' => true, 'role' => 'admin']);
+
+// Contact form — public intake + admin inbox.
+$router->get ('/contact',                        [ContactMessageController::class, 'publicForm']);
+$router->post('/contact',                        [ContactMessageController::class, 'submit']);
+$router->get ('/admin/contact',                  [ContactMessageController::class, 'index'],      ['auth' => true]);
+$router->get ('/admin/contact/{id}',             [ContactMessageController::class, 'show'],       ['auth' => true]);
+$router->post('/admin/contact/{id}/read',        [ContactMessageController::class, 'markRead'],   ['auth' => true]);
+$router->post('/admin/contact/{id}/unread',      [ContactMessageController::class, 'markUnread'], ['auth' => true]);
+$router->post('/admin/contact/{id}/delete',      [ContactMessageController::class, 'destroy'],    ['auth' => true, 'role' => 'admin']);
 
 $router->dispatch();
