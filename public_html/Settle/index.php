@@ -19,6 +19,7 @@ use Settle\Controller\MediaController;
 use Settle\Controller\SlideshowController;
 use Settle\Controller\PublicController;
 use Settle\Controller\StaffController;
+use Settle\Controller\PrayerRequestController;
 
 $router = new Router();
 
@@ -74,5 +75,16 @@ $router->get ('/admin/staff/{id}/edit',    [StaffController::class, 'edit'],    
 $router->post('/admin/staff/{id}',         [StaffController::class, 'update'],  ['auth' => true, 'role' => 'editor']);
 $router->post('/admin/staff/{id}/toggle',  [StaffController::class, 'toggle'],  ['auth' => true, 'role' => 'editor']);
 $router->post('/admin/staff/{id}/delete',  [StaffController::class, 'destroy'], ['auth' => true, 'role' => 'editor']);
+
+// Public prayer request form (no auth — visitors submit anonymously)
+$router->get ('/prayer', [PrayerRequestController::class, 'publicForm']);
+$router->post('/prayer', [PrayerRequestController::class, 'submit']);
+
+// Admin prayer inbox — editor+ for the inbox, admin-only for hard delete.
+// Author role can hit /admin/prayer (the controller hides private text from them).
+$router->get ('/admin/prayer',                [PrayerRequestController::class, 'index'],        ['auth' => true]);
+$router->get ('/admin/prayer/{id}',           [PrayerRequestController::class, 'show'],         ['auth' => true]);
+$router->post('/admin/prayer/{id}/status',    [PrayerRequestController::class, 'updateStatus'], ['auth' => true, 'role' => 'editor']);
+$router->post('/admin/prayer/{id}/delete',    [PrayerRequestController::class, 'destroy'],      ['auth' => true, 'role' => 'admin']);
 
 $router->dispatch();

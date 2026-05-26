@@ -21,8 +21,16 @@
     <a href="/admin/slideshow">Homepage Slideshow</a>
     <a href="/admin/staff">Staff Directory</a>
     <a href="/admin/calendar">Calendar &amp; Events</a>
-    <a href="/admin/prayer">Prayer Requests</a>
-    <a href="/admin/contact">Contact Messages</a>
+	<?php $_prayerCounts = \Settle\Model\PrayerRequest::countByStatus(); ?>
+	<a href="/admin/prayer">
+		Prayer Requests
+		<?php if (!empty($_prayerCounts['new'])): ?>
+			<span style="background:#9E2A2B; color:#fff; font-size:0.75em;
+						 padding:0.1em 0.5em; border-radius:1em; margin-left:0.3em;">
+				<?= (int)$_prayerCounts['new'] ?>
+			</span>
+		<?php endif; ?>
+</a>    <a href="/admin/contact">Contact Messages</a>
   </nav>
   <div class="signin">
     Signed in as <strong><?= htmlspecialchars($_user['display'] ?? '', ENT_QUOTES) ?></strong>

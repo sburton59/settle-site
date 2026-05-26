@@ -230,3 +230,14 @@ table.list tr:last-child td { border-bottom: 0; }
 .protected-email {
   cursor: pointer;
 }
+
+/* Prayer Requests --------------------------------------------------- */
+.tabs a:hover {
+    filter: brightness(0.95);
+}
+
+/* Optional: a subtle pulse on the sidebar badge when count > 0.
+   Removed if it feels too attention-grabbing for pastoral content. */
+.sidebar nav a span {
+    transition: background 0.2s;
+}
