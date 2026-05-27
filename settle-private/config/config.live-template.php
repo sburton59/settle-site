@@ -14,9 +14,9 @@ return [
     'db' => [
         'host'    => '127.0.0.1',
         'port'    => 3306,
-        'name'    => 'infowebs_settle',       // database name created in cPanel
-        'user'    => 'infowebs_settle-root',  // cPanel-prefixed username
-        'pass'    => 'PASTE_REAL_PASSWORD_HERE',
+        'name'    => 'xxxxxxxxxxxxxx',       // database name created in cPanel
+        'user'    => 'xxxxxxxxxxxxxxxx',  // cPanel-prefixed username
+        'pass'    => 'xxxxxxxxxxxxx',      // <-- set this before first run
         'charset' => 'utf8mb4',
     ],
     'session' => [
