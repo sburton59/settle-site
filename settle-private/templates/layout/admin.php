@@ -16,6 +16,7 @@
   <nav>
     <a href="/admin">Dashboard</a>
     <a href="/admin/pages">Pages</a>
+    <a href="/admin/menu">Menu</a>
     <a href="/admin/posts">Blog Posts</a>
     <a href="/admin/media">Photos</a>
     <a href="/admin/slideshow">Homepage Slideshow</a>

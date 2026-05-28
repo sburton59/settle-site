@@ -29,6 +29,21 @@ final class Page
         )->fetchAll();
     }
 
+    /**
+     * Public listing — published pages only, ordered by menu_order then title.
+     * Used by the menu URL picker to populate the "Pages" group of link
+     * destinations. Mirrors Staff::allVisible() in role.
+     */
+    public static function allPublished(): array
+    {
+        return Database::query(
+            'SELECT id, slug, title, menu_order
+             FROM pages
+             WHERE is_published = 1
+             ORDER BY menu_order, title'
+        )->fetchAll();
+    }
+
     public static function find(int $id): ?array
     {
         $row = Database::query('SELECT * FROM pages WHERE id = :id', [':id' => $id])->fetch();
