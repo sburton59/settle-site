@@ -1,6 +1,8 @@
 <?php
 /** @var string $content */
 /** @var array|null $_user */
+
+use Settle\Features;
 ?>
 <!doctype html>
 <html lang="en">
@@ -15,35 +17,60 @@
   <div class="brand">Settle Admin</div>
   <nav>
     <a href="/admin">Dashboard</a>
-    <a href="/admin/pages">Pages</a>
-    <a href="/admin/menu">Menu</a>
-    <a href="/admin/posts">Blog Posts</a>
-    <a href="/admin/media">Photos</a>
-    <a href="/admin/slideshow">Homepage Slideshow</a>
-    <a href="/admin/staff">Staff Directory</a>
-    <a href="/admin/calendar">Calendar &amp; Events</a>
 
-    <?php $_prayerCounts = \Settle\Model\PrayerRequest::countByStatus(); ?>
-    <a href="/admin/prayer">
-      Prayer Requests
-      <?php if (!empty($_prayerCounts['new'])): ?>
-        <span style="background:#9E2A2B; color:#fff; font-size:0.75em;
-                     padding:0.1em 0.5em; border-radius:1em; margin-left:0.3em;">
-          <?= (int)$_prayerCounts['new'] ?>
-        </span>
-      <?php endif; ?>
-    </a>
+    <?php if (Features::enabled('pages')): ?>
+      <a href="/admin/pages">Pages</a>
+    <?php endif; ?>
 
-    <?php $_contactUnread = \Settle\Model\ContactMessage::countUnread(); ?>
-    <a href="/admin/contact">
-      Contact Messages
-      <?php if ($_contactUnread > 0): ?>
-        <span style="background:#9E2A2B; color:#fff; font-size:0.75em;
-                     padding:0.1em 0.5em; border-radius:1em; margin-left:0.3em;">
-          <?= $_contactUnread ?>
-        </span>
-      <?php endif; ?>
-    </a>
+    <?php if (Features::enabled('menu')): ?>
+      <a href="/admin/menu">Menu</a>
+    <?php endif; ?>
+
+    <?php if (Features::enabled('blog')): ?>
+      <a href="/admin/posts">Blog Posts</a>
+    <?php endif; ?>
+
+    <?php if (Features::enabled('media')): ?>
+      <a href="/admin/media">Photos</a>
+    <?php endif; ?>
+
+    <?php if (Features::enabled('slideshow')): ?>
+      <a href="/admin/slideshow">Homepage Slideshow</a>
+    <?php endif; ?>
+
+    <?php if (Features::enabled('staff')): ?>
+      <a href="/admin/staff">Staff Directory</a>
+    <?php endif; ?>
+
+    <?php if (Features::enabled('calendar')): ?>
+      <a href="/admin/calendar">Calendar &amp; Events</a>
+    <?php endif; ?>
+
+    <?php if (Features::enabled('prayer')): ?>
+      <?php $_prayerCounts = \Settle\Model\PrayerRequest::countByStatus(); ?>
+      <a href="/admin/prayer">
+        Prayer Requests
+        <?php if (!empty($_prayerCounts['new'])): ?>
+          <span style="background:#9E2A2B; color:#fff; font-size:0.75em;
+                       padding:0.1em 0.5em; border-radius:1em; margin-left:0.3em;">
+            <?= (int)$_prayerCounts['new'] ?>
+          </span>
+        <?php endif; ?>
+      </a>
+    <?php endif; ?>
+
+    <?php if (Features::enabled('contact')): ?>
+      <?php $_contactUnread = \Settle\Model\ContactMessage::countUnread(); ?>
+      <a href="/admin/contact">
+        Contact Messages
+        <?php if ($_contactUnread > 0): ?>
+          <span style="background:#9E2A2B; color:#fff; font-size:0.75em;
+                       padding:0.1em 0.5em; border-radius:1em; margin-left:0.3em;">
+            <?= $_contactUnread ?>
+          </span>
+        <?php endif; ?>
+      </a>
+    <?php endif; ?>
   </nav>
   <div class="signin">
     Signed in as <strong><?= htmlspecialchars($_user['display'] ?? '', ENT_QUOTES) ?></strong>
