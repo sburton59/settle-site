@@ -1,0 +1,760 @@
+/* =============================================================
+   Settle Memorial UMC — public theme
+   -----------------------------------------------------------
+   This stylesheet contains every visual decision for the
+   public-facing site. Admin pages still use admin.css.
+   
+   Conventions (see PROJECT_HANDOFF.md §9):
+     - Every brand value lives in the :root custom-property block
+       below. The rest of the file references variables.
+     - When the multi-church refactor ships, the :root block is
+       what each per-site repo overrides. Nothing else.
+     - Mobile-first. Media queries upgrade, never downgrade.
+     - Cinzel for headings (uppercase, letterspaced). Lato for body.
+   ============================================================= */
+
+
+/* ---------- 1. Custom property declarations ---------- */
+
+:root {
+  /* Brand colors (sourced from the logo) */
+  --brand-primary:        #9E2A2B;
+  --brand-primary-dark:   #7E2122;
+  --brand-primary-darker: #5E1819;
+  --brand-ink:            #2C2C2E;   /* the dark-grey from the cross/shield */
+  --brand-ink-soft:       #4A4A4D;
+
+  /* Neutrals */
+  --bg:                   #FFFFFF;
+  --bg-soft:              #F7F4F2;
+  --bg-band:              #1F1B1B;   /* footer */
+  --border-soft:          #E8E2DE;
+  --text:                 #2C2C2E;
+  --text-muted:           #6B6661;
+  --text-on-dark:         #F4EFEC;
+  --text-on-dark-muted:   #BDB6B1;
+
+  /* Typography */
+  --font-display: 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
+  --font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                  Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Layout */
+  --container-max:        1200px;
+  --container-gutter:     1.25rem;
+  --section-pad-y:        3rem;
+  --section-pad-y-lg:     5rem;
+
+  /* Scale */
+  --radius:               4px;
+  --radius-lg:            8px;
+  --shadow-card:          0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.05);
+  --transition-fast:      120ms ease;
+  --transition-med:       250ms ease;
+
+  /* Header */
+  --header-height:        88px;
+  --header-height-mobile: 68px;
+}
+
+
+/* ---------- 2. Reset and base ---------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img, svg { max-width: 100%; height: auto; display: block; }
+
+a {
+  color: var(--brand-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--transition-fast);
+}
+a:hover { color: var(--brand-primary-dark); }
+a:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border-soft);
+  margin: 2rem 0;
+}
+
+
+/* ---------- 3. Typography ---------- */
+
+h1, h2, h3, h4, .eyebrow {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+  margin: 0 0 0.75rem;
+  line-height: 1.2;
+}
+
+h1 { font-size: 1.85rem; }           /* 29.6px mobile */
+h2 { font-size: 1.4rem; }            /* 22.4px */
+h3 { font-size: 1.15rem; letter-spacing: 0.1em; }
+h4 { font-size: 0.95rem; letter-spacing: 0.12em; }
+
+.eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  color: var(--brand-primary);
+  margin-bottom: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  h1 { font-size: 2.4rem; }
+  h2 { font-size: 1.75rem; }
+  h3 { font-size: 1.25rem; }
+}
+
+p { margin: 0 0 1rem; }
+p:last-child { margin-bottom: 0; }
+
+/* Heading immediately after another heading: tighten the gap */
+h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
+
+
+/* ---------- 4. Layout primitives ---------- */
+
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-gutter);
+}
+
+.section {
+  padding-block: var(--section-pad-y);
+}
+
+.section--lg {
+  padding-block: var(--section-pad-y-lg);
+}
+
+.section--soft  { background: var(--bg-soft); }
+.section--brand { background: var(--brand-primary); color: var(--text-on-dark); }
+.section--brand h1, .section--brand h2, .section--brand h3, .section--brand h4,
+.section--brand .eyebrow { color: var(--text-on-dark); }
+.section--brand a { color: var(--text-on-dark); }
+
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.85rem 1.5rem;
+  border-radius: var(--radius);
+  border: 2px solid var(--brand-primary);
+  background: var(--brand-primary);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.btn:hover {
+  background: var(--brand-primary-dark);
+  border-color: var(--brand-primary-dark);
+  color: #fff;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--brand-primary);
+}
+.btn--ghost:hover {
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+.btn--on-dark {
+  background: transparent;
+  border-color: #fff;
+  color: #fff;
+}
+.btn--on-dark:hover {
+  background: #fff;
+  color: var(--brand-primary);
+  border-color: #fff;
+}
+
+
+/* ---------- 5. Header + Nav + Footer ---------- */
+
+.site-header {
+  background: #fff;
+  border-bottom: 1px solid var(--border-soft);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height-mobile);
+}
+
+.site-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+.site-header__brand img {
+  height: 44px;
+  width: auto;
+}
+
+/* Hide visible church-name text on mobile (logo is enough) */
+.site-header__brand-text { display: none; }
+
+@media (min-width: 768px) {
+  .site-header__inner { height: var(--header-height); }
+  .site-header__brand img { height: 56px; }
+  .site-header__brand-text {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brand-ink-soft);
+  }
+}
+
+/* --- Top nav --- */
+.site-nav {
+  display: none;
+}
+
+.site-nav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.site-nav__item {
+  position: relative;
+}
+
+.site-nav__link {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--brand-ink);
+  text-decoration: none;
+  padding: 0.5rem 0;
+  display: inline-block;
+  border-bottom: 2px solid transparent;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.site-nav__link:hover,
+.site-nav__link[aria-current="page"] {
+  color: var(--brand-primary);
+  border-bottom-color: var(--brand-primary);
+}
+
+/* Submenu (one level of nesting) */
+.site-nav__submenu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 0.5rem 0;
+  list-style: none;
+  margin: 0;
+}
+.site-nav__item:hover > .site-nav__submenu,
+.site-nav__item:focus-within > .site-nav__submenu {
+  display: block;
+}
+.site-nav__submenu .site-nav__link {
+  display: block;
+  padding: 0.5rem 1rem;
+  border-bottom: none;
+  white-space: nowrap;
+}
+.site-nav__submenu .site-nav__link:hover {
+  background: var(--bg-soft);
+}
+
+@media (min-width: 1024px) {
+  .site-nav { display: block; }
+  .site-nav-toggle, .site-nav-toggle-label { display: none; }
+}
+
+/* --- Mobile nav (CSS-only, no JS) --- */
+.site-nav-toggle { display: none; }   /* hidden checkbox */
+.site-nav-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+  cursor: pointer;
+  padding: 0.5rem;
+  user-select: none;
+}
+.site-nav-toggle-label::before {
+  content: "";
+  display: inline-block;
+  width: 22px;
+  height: 2px;
+  background: currentColor;
+  box-shadow: 0 -7px 0 currentColor, 0 7px 0 currentColor;
+}
+
+/* When the checkbox is checked, slide the mobile drawer down */
+.site-nav-toggle:checked ~ .site-nav-mobile {
+  display: block;
+}
+.site-nav-mobile {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-card);
+}
+.site-nav-mobile__list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+.site-nav-mobile__link {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--brand-ink);
+  text-decoration: none;
+  display: block;
+  padding: 0.85rem var(--container-gutter);
+  border-bottom: 1px solid var(--border-soft);
+}
+.site-nav-mobile__link:hover,
+.site-nav-mobile__link[aria-current="page"] {
+  color: var(--brand-primary);
+  background: var(--bg-soft);
+}
+.site-nav-mobile__sublist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--bg-soft);
+}
+.site-nav-mobile__sublist .site-nav-mobile__link {
+  padding-left: calc(var(--container-gutter) + 1.25rem);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  background: var(--bg-soft);
+}
+
+@media (min-width: 1024px) {
+  .site-nav-mobile { display: none !important; }
+}
+
+/* --- Footer --- */
+.site-footer {
+  background: var(--bg-band);
+  color: var(--text-on-dark);
+  padding-block: 3rem 1.5rem;
+  margin-top: 4rem;
+}
+.site-footer a { color: var(--text-on-dark); }
+.site-footer a:hover { color: #fff; }
+
+.site-footer__grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .site-footer__grid {
+    grid-template-columns: 1.5fr 1fr 1fr;
+  }
+}
+
+.site-footer h4 {
+  color: var(--text-on-dark);
+  font-size: 0.85rem;
+  letter-spacing: 0.16em;
+  margin-bottom: 1rem;
+}
+
+.site-footer__brand-line {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.site-footer__address {
+  font-style: normal;
+  color: var(--text-on-dark-muted);
+  line-height: 1.7;
+}
+.site-footer__address strong { color: var(--text-on-dark); font-weight: 600; }
+
+.site-footer__social {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.site-footer__social a {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--text-on-dark-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.site-footer__social a:hover {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+.site-footer__bottom {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  font-size: 0.8rem;
+  color: var(--text-on-dark-muted);
+  text-align: center;
+}
+
+
+/* ---------- 6. Hero / Slideshow ---------- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+/* Empty-state hero: no slides yet, just a brand band */
+.hero--empty {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4rem 1rem;
+}
+.hero--empty h1 {
+  color: #fff;
+  margin: 0;
+}
+
+/* Slideshow container */
+.slideshow {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 560px;
+  background: var(--brand-ink);
+}
+@media (max-width: 767px) {
+  .slideshow { aspect-ratio: 4 / 3; max-height: 420px; }
+}
+
+.slideshow__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 800ms ease;
+  background-size: cover;
+  background-position: center;
+}
+.slideshow__slide.is-active {
+  opacity: 1;
+  z-index: 2;
+}
+
+/* Optional caption overlay */
+.slideshow__caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+  color: #fff;
+  padding: 2rem var(--container-gutter) 1.5rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* Dot indicators */
+.slideshow__dots {
+  position: absolute;
+  bottom: 0.85rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  gap: 0.5rem;
+}
+.slideshow__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.45);
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.slideshow__dot.is-active { background: #fff; }
+.slideshow__dot:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+
+/* ---------- 7. Page content, cards, forms, utilities ---------- */
+
+/* Generic prose styling for body_html content from the pages table */
+.prose {
+  max-width: 70ch;
+}
+.prose h2 { margin-top: 2.5rem; }
+.prose h3 { margin-top: 2rem; }
+.prose ul, .prose ol { padding-left: 1.5rem; margin: 0 0 1rem; }
+.prose li { margin-bottom: 0.35rem; }
+.prose img { border-radius: var(--radius); margin: 1.5rem 0; }
+.prose blockquote {
+  border-left: 3px solid var(--brand-primary);
+  padding: 0.25rem 0 0.25rem 1.25rem;
+  margin: 1.5rem 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Page intro band */
+.page-intro {
+  background: var(--bg-soft);
+  padding-block: 3rem;
+  border-bottom: 1px solid var(--border-soft);
+  text-align: center;
+}
+.page-intro h1 { margin-bottom: 0.5rem; }
+.page-intro .eyebrow { margin-bottom: 0.25rem; }
+
+
+/* --- Staff cards (de-inlined from the existing pattern) --- */
+.staff-grid {
+  display: grid;
+  gap: 1.75rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 600px)  { .staff-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px)  { .staff-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1200px) { .staff-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.staff-card {
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-med), box-shadow var(--transition-med);
+}
+.staff-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+.staff-card__photo {
+  aspect-ratio: 4 / 5;
+  background: var(--bg-soft);
+  background-size: cover;
+  background-position: center;
+}
+.staff-card__body {
+  padding: 1.25rem 1.25rem 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.staff-card__name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-ink);
+  margin: 0 0 0.25rem;
+}
+.staff-card__title {
+  font-size: 0.85rem;
+  color: var(--brand-primary);
+  margin: 0 0 0.75rem;
+}
+.staff-card__bio {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+}
+.staff-card__contact {
+  margin-top: auto;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.staff-card__contact a {
+  display: block;
+  word-break: break-word;
+}
+
+/* --- Forms (prayer, contact, future) --- */
+.form {
+  max-width: 640px;
+}
+.form__field {
+  margin-bottom: 1.25rem;
+}
+.form__label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+  margin-bottom: 0.5rem;
+}
+.form__label .req { color: var(--brand-primary); }
+
+.form__input,
+.form__textarea,
+.form__select {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.form__textarea { min-height: 140px; resize: vertical; }
+.form__input:focus,
+.form__textarea:focus,
+.form__select:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(158, 42, 43, 0.15);
+}
+
+.form__radio-group {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.form__radio-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.form__hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+.form__error {
+  background: #FDECEC;
+  border: 1px solid var(--brand-primary);
+  color: var(--brand-primary-darker);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  margin-bottom: 1.25rem;
+}
+.form__success {
+  background: #F0F7EE;
+  border: 1px solid #3D7A3A;
+  color: #2C5C2A;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+}
+
+/* Honeypot — visually and screen-reader hidden but present in DOM */
+.form__honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+
+/* --- Utilities --- */
+.u-text-center { text-align: center; }
+.u-mt-0 { margin-top: 0 !important; }
+.u-mb-0 { margin-bottom: 0 !important; }
+.u-mt-2 { margin-top: 1.5rem; }
+.u-mb-2 { margin-bottom: 1.5rem; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
