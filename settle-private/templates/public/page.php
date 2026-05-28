@@ -1,6 +1,28 @@
-<?php /** @var array $page */ ?>
-<div style="max-width:900px; margin:2em auto; padding:1em;">
-  <h1 style="color:var(--brand-red);"><?= htmlspecialchars($page['title'], ENT_QUOTES) ?></h1>
-  <div><?= $page['body_html'] /* trusted */ ?></div>
-  <p style="margin-top:3em;"><a href="/">← Home</a></p>
-</div>
+<?php
+/**
+ * Generic public page renderer.
+ *
+ * @var array   $page       From PublicController::page()
+ * @var array   $settings   From PublicView
+ * @var array   $menu_tree  From PublicView
+ * @var Closure $e
+ */
+?>
+
+<section class="page-intro">
+  <div class="container">
+    <h1><?= $e($page['title']) ?></h1>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <article class="prose" style="margin-inline: auto;">
+      <?php
+        // body_html is intentionally trusted (only authenticated editors
+        // can write it — see PROJECT_HANDOFF.md §3.5).
+        echo $page['body_html'] ?? '';
+      ?>
+    </article>
+  </div>
+</section>

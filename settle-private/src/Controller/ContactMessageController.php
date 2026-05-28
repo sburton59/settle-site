@@ -6,6 +6,7 @@ namespace Settle\Controller;
 use Settle\Auth;
 use Settle\AuditLog;
 use Settle\Model\ContactMessage;
+use Settle\PublicView;
 
 /**
  * Contact Messages — public intake form + admin inbox.
@@ -138,11 +139,13 @@ final class ContactMessageController extends BaseController
     }
 
     /**
-     * Public side uses the public.php layout instead of admin.php.
+     * Public side uses the public.php layout AND injects $settings +
+     * $menu_tree into the template scope (which the public layout
+     * requires). PublicView::render() handles both concerns.
      */
     private function renderPublic(string $template, array $data): void
     {
-        \Settle\View::render($template, $data, 'public');
+        PublicView::render($template, $data);
     }
 
     private function blankFormData(): array

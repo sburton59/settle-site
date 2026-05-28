@@ -1,18 +1,173 @@
-<?php /** @var array|null $about */ ?>
-<div style="max-width:900px; margin:2em auto; padding:1em;">
-  <h1 style="color:var(--brand-red);">Settle Memorial United Methodist Church</h1>
-  <p class="muted">Owensboro, Kentucky</p>
+<?php
+/**
+ * Homepage.
+ *
+ * @var array        $settings    From PublicView
+ * @var array        $menu_tree   From PublicView
+ * @var array|null   $about       From PublicController::home() — the about page row (for welcome text)
+ * @var array        $slides      From PublicController::home() — active slideshow slides
+ * @var Closure      $e           htmlspecialchars helper from View::render()
+ */
 
-  <?php if ($about): ?>
-    <div style="margin-top:2em;">
-      <?= $about['body_html'] /* trusted: written by staff via admin */ ?>
-      <p><a href="/page/about">Read more about us →</a></p>
+// Settings accessor (same closure pattern as the layout).
+$s = static function (string $key, string $default = '') use ($settings): string {
+    return isset($settings[$key]) && $settings[$key] !== ''
+        ? (string) $settings[$key]
+        : $default;
+};
+
+$slides = $slides ?? [];
+$hasSlides = $slides !== [];
+?>
+
+<?php if ($hasSlides): ?>
+  <section class="hero" aria-label="Welcome">
+    <div
+      class="slideshow"
+      data-slideshow
+      data-interval="6000"
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Highlights"
+    >
+      <?php foreach ($slides as $i => $slide): ?>
+        <?php
+          $bg = '';
+          // The Slideshow::active() shape historically delivers media join
+          // data either inlined (filename present on the row) or as a
+          // nested key. We defensively check both.
+          if (!empty($slide['filename'])) {
+              $bg = '/uploads/' . ltrim((string) $slide['filename'], '/');
+          } elseif (!empty($slide['media_filename'])) {
+              $bg = '/uploads/' . ltrim((string) $slide['media_filename'], '/');
+          } elseif (!empty($slide['url'])) {
+              $bg = (string) $slide['url'];
+          }
+        ?>
+        <div
+          class="slideshow__slide<?= $i === 0 ? ' is-active' : '' ?>"
+          data-slide-index="<?= (int) $i ?>"
+          <?php if ($bg !== ''): ?>
+            style="background-image: url('<?= $e($bg) ?>');"
+          <?php endif; ?>
+          aria-hidden="<?= $i === 0 ? 'false' : 'true' ?>"
+        >
+          <?php if (!empty($slide['caption'])): ?>
+            <div class="slideshow__caption"><?= $e($slide['caption']) ?></div>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+
+      <?php if (count($slides) > 1): ?>
+        <div class="slideshow__dots" data-slideshow-dots>
+          <?php foreach ($slides as $i => $_): ?>
+            <button
+              type="button"
+              class="slideshow__dot<?= $i === 0 ? ' is-active' : '' ?>"
+              data-slide-target="<?= (int) $i ?>"
+              aria-label="Show slide <?= (int) ($i + 1) ?>"
+            ></button>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
     </div>
-  <?php else: ?>
-    <p>Welcome. The site is being set up.</p>
-  <?php endif; ?>
+  </section>
 
-  <p style="margin-top:3em;" class="muted">
-    <a href="/admin">Staff login</a>
-  </p>
-</div>
+  <script src="/assets/js/slideshow.js" defer></script>
+<?php else: ?>
+  <!-- Empty-state hero: no slides seeded yet. -->
+  <section class="hero hero--empty">
+    <div class="container">
+      <h1><?= $e($s('church_name', 'Welcome')) ?></h1>
+      <?php if ($s('church_tagline') !== ''): ?>
+        <p style="opacity: 0.9; margin-top: 1rem;"><?= $e($s('church_tagline')) ?></p>
+      <?php endif; ?>
+    </div>
+  </section>
+<?php endif; ?>
+
+<section class="section">
+  <div class="container">
+    <div style="max-width: 760px; margin-inline: auto; text-align: center;">
+      <div class="eyebrow"><?= $e($s('church_short_name', 'Welcome')) ?></div>
+      <h2><?= $e($s('homepage_welcome_heading', 'Welcome home')) ?></h2>
+      <?php
+        // Welcome lead falls back to the About page's first paragraph
+        // if the dedicated homepage_welcome_lead setting is blank.
+        $lead = $s('homepage_welcome_lead');
+        if ($lead === '' && !empty($about['body_html'])) {
+            // Strip HTML, take the first ~280 chars at a word boundary.
+            $plain = trim(strip_tags((string) $about['body_html']));
+            if ($plain !== '') {
+                if (mb_strlen($plain) > 280) {
+                    $cut = mb_substr($plain, 0, 280);
+                    $lastSpace = mb_strrpos($cut, ' ');
+                    if ($lastSpace !== false) {
+                        $cut = mb_substr($cut, 0, $lastSpace);
+                    }
+                    $lead = $cut . '…';
+                } else {
+                    $lead = $plain;
+                }
+            }
+        }
+      ?>
+      <?php if ($lead !== ''): ?>
+        <p style="font-size: 1.1rem; line-height: 1.7;"><?= $e($lead) ?></p>
+      <?php endif; ?>
+      <div class="u-mt-2">
+        <a class="btn" href="/page/about">Learn More</a>
+        <a class="btn btn--ghost" href="/page/im-new" style="margin-left: 0.5rem;">I'm New</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<?php
+// Service-times band shows if at least one worship_* setting is populated.
+$hasWorship = $s('worship_traditional') !== ''
+            || $s('worship_contemporary') !== ''
+            || $s('worship_sunday_school') !== '';
+?>
+<?php if ($hasWorship): ?>
+  <section class="section section--soft">
+    <div class="container">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <div class="eyebrow">Join Us</div>
+        <h2>This Sunday</h2>
+      </div>
+      <div style="display: grid; gap: 1.5rem; grid-template-columns: 1fr; max-width: 900px; margin-inline: auto;">
+        <?php if ($s('worship_sunday_school') !== ''): ?>
+          <div style="background: #fff; padding: 1.5rem; border-radius: 8px; text-align: center;">
+            <h3 style="font-size: 0.85rem; color: var(--brand-primary);">Sunday School</h3>
+            <div style="font-size: 1.05rem;"><?= $e($s('worship_sunday_school')) ?></div>
+          </div>
+        <?php endif; ?>
+        <?php if ($s('worship_traditional') !== ''): ?>
+          <div style="background: #fff; padding: 1.5rem; border-radius: 8px; text-align: center;">
+            <h3 style="font-size: 0.85rem; color: var(--brand-primary);">Traditional</h3>
+            <div style="font-size: 1.05rem;"><?= $e($s('worship_traditional')) ?></div>
+          </div>
+        <?php endif; ?>
+        <?php if ($s('worship_contemporary') !== ''): ?>
+          <div style="background: #fff; padding: 1.5rem; border-radius: 8px; text-align: center;">
+            <h3 style="font-size: 0.85rem; color: var(--brand-primary);">Contemporary</h3>
+            <div style="font-size: 1.05rem;"><?= $e($s('worship_contemporary')) ?></div>
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </section>
+<?php endif; ?>
+
+<section class="section section--brand">
+  <div class="container" style="text-align: center; max-width: 720px; margin-inline: auto;">
+    <div class="eyebrow">We'd love to hear from you</div>
+    <h2 style="font-size: 1.6rem;">Get in touch</h2>
+    <p style="margin: 1rem 0 1.5rem; opacity: 0.95;">
+      Have a question? Looking for a place to plug in? Want us to pray for you?
+    </p>
+    <a class="btn btn--on-dark" href="/contact">Contact Us</a>
+    <a class="btn btn--on-dark" href="/prayer" style="margin-left: 0.5rem;">Prayer Request</a>
+  </div>
+</section>

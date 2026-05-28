@@ -37,6 +37,22 @@ final class Slideshow
         )->fetchAll();
     }
 
+    /**
+     * Public listing — active slides only, in display order.
+     */
+    public static function active(): array
+    {
+        return Database::query(
+            'SELECT s.*,
+                    m.filename  AS media_filename,
+                    m.alt_text  AS media_alt
+             FROM slideshow_slides s
+             INNER JOIN media m ON m.id = s.media_id
+             WHERE s.is_active = 1
+             ORDER BY s.sort_order, s.id'
+        )->fetchAll();
+    }
+
     public static function find(int $id): ?array
     {
         $row = Database::query(

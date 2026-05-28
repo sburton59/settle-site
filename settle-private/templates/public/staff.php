@@ -1,53 +1,87 @@
 <?php
-/** @var array $staff */
+/**
+ * Staff directory.
+ *
+ * @var array   $staff      From PublicController::staff() — visible staff in order
+ * @var array   $settings   From PublicView
+ * @var array   $menu_tree  From PublicView
+ * @var Closure $e
+ */
+
+use Settle\EmailObfuscator;
+use Settle\PhoneFormatter;
 ?>
-<div style="max-width:1100px; margin:2em auto; padding:1em;">
-  <h1 style="color:var(--brand-red);">Our Staff</h1>
 
-  <?php if (empty($staff)): ?>
-    <p class="muted">Staff information is being updated. Please check back soon.</p>
-  <?php else: ?>
-    <div class="staff-grid">
-      <?php foreach ($staff as $p): ?>
-        <div class="staff-card">
-          <div class="staff-photo">
-            <?php if (!empty($p['photo_filename'])): ?>
-              <img src="/uploads/<?= htmlspecialchars($p['photo_filename'], ENT_QUOTES) ?>"
-                   alt="<?= htmlspecialchars($p['photo_alt'] ?: $p['full_name'], ENT_QUOTES) ?>"
-                   loading="lazy">
-            <?php else: ?>
-              <img src="/assets/img/silhouette.svg" alt="" loading="lazy">
-            <?php endif; ?>
+<section class="page-intro">
+  <div class="container">
+    <div class="eyebrow">Meet</div>
+    <h1>Our Staff</h1>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+
+    <?php if ($staff === []): ?>
+      <p style="text-align: center; color: var(--text-muted);">
+        Staff directory coming soon.
+      </p>
+    <?php else: ?>
+      <div class="staff-grid">
+        <?php foreach ($staff as $member): ?>
+          <?php
+            $photoUrl = '';
+            if (!empty($member['photo_filename'])) {
+                $photoUrl = '/uploads/' . ltrim((string) $member['photo_filename'], '/');
+            } elseif (!empty($member['photo_url'])) {
+                $photoUrl = (string) $member['photo_url'];
+            }
+            if ($photoUrl === '') {
+                $photoUrl = '/assets/img/silhouette.svg';
+            }
+          ?>
+          <div class="staff-card">
+            <div
+              class="staff-card__photo"
+              style="background-image: url('<?= $e($photoUrl) ?>');"
+              role="img"
+              aria-label="<?= $e($member['full_name']) ?>"
+            ></div>
+            <div class="staff-card__body">
+              <h2 class="staff-card__name"><?= $e($member['full_name']) ?></h2>
+              <?php if (!empty($member['title'])): ?>
+                <div class="staff-card__title"><?= $e($member['title']) ?></div>
+              <?php endif; ?>
+              <?php if (!empty($member['bio_html'])): ?>
+                <div class="staff-card__bio">
+                  <?php
+                    // bio_html is intentionally trusted (admin-authored).
+                    echo $member['bio_html'];
+                  ?>
+                </div>
+              <?php endif; ?>
+
+              <?php
+                $hasEmail = !empty($member['email']);
+                $hasPhone = !empty($member['phone']);
+              ?>
+              <?php if ($hasEmail || $hasPhone): ?>
+                <div class="staff-card__contact">
+                  <?php if ($hasEmail): ?>
+                    <?= EmailObfuscator::link((string) $member['email']) ?>
+                  <?php endif; ?>
+                  <?php if ($hasPhone): ?>
+                    <a href="<?= $e(PhoneFormatter::telHref((string) $member['phone'])) ?>">
+                      <?= $e(PhoneFormatter::formatUs((string) $member['phone'])) ?>
+                    </a>
+                  <?php endif; ?>
+                </div>
+              <?php endif; ?>
+            </div>
           </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
 
-          <h2 class="staff-name"><?= htmlspecialchars($p['full_name'], ENT_QUOTES) ?></h2>
-
-          <?php if (!empty($p['title'])): ?>
-            <div class="staff-title"><?= htmlspecialchars($p['title'], ENT_QUOTES) ?></div>
-          <?php endif; ?>
-
-          <?php if (!empty($p['bio_html'])): ?>
-            <div class="staff-bio">
-              <?= $p['bio_html'] /* trusted: written by staff via admin */ ?>
-            </div>
-          <?php endif; ?>
-
-          <?php if (!empty($p['email']) || !empty($p['phone'])): ?>
-            <div class="staff-contact">
-              <?php if (!empty($p['email'])): ?>
-                <div><?= \Settle\EmailObfuscator::link($p['email']) ?></div>
-              <?php endif; ?>
-			<?php if (!empty($p['phone'])): ?>
-                <div><a href="tel:<?= htmlspecialchars(\Settle\PhoneFormatter::telHref($p['phone']), ENT_QUOTES) ?>">
-                  <?= htmlspecialchars(\Settle\PhoneFormatter::formatUs($p['phone']), ENT_QUOTES) ?>
-                </a></div>
-              <?php endif; ?>
-            </div>
-          <?php endif; ?>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-
-  <p style="margin-top:3em;"><a href="/">&larr; Home</a></p>
-</div>
+  </div>
+</section>

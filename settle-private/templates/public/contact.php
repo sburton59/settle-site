@@ -1,165 +1,166 @@
 <?php
-/** @var array $errors Field-keyed validation errors (or []) */
-/** @var array $data   Posted form values to redisplay (or blanks) */
-/** @var bool  $success True when the submission was accepted */
+/**
+ * Contact public form.
+ *
+ * @var array   $errors     Field-keyed validation errors
+ * @var array   $data       Echoed-back form values
+ * @var bool    $success    True = show thank-you state
+ * @var array   $settings   From PublicView
+ * @var array   $menu_tree  From PublicView
+ * @var Closure $e
+ */
 
-$nameVal    = htmlspecialchars((string)($data['sender_name']  ?? ''), ENT_QUOTES);
-$emailVal   = htmlspecialchars((string)($data['sender_email'] ?? ''), ENT_QUOTES);
-$phoneVal   = htmlspecialchars((string)($data['sender_phone'] ?? ''), ENT_QUOTES);
-$messageVal = htmlspecialchars((string)($data['message_text'] ?? ''), ENT_QUOTES);
-$reply      = (string)($data['reply_method'] ?? 'email');
-if (!in_array($reply, ['email', 'phone', 'either'], true)) {
-    $reply = 'email';
-}
+use Settle\Csrf;
+
+$s = static function (string $key, string $default = '') use ($settings): string {
+    return isset($settings[$key]) && $settings[$key] !== ''
+        ? (string) $settings[$key]
+        : $default;
+};
 ?>
-<div style="max-width:640px; margin:2em auto; padding:1em;">
-  <h1>Contact Us</h1>
 
-  <?php if ($success): ?>
-    <div style="background:#d4edda; color:#155724; padding:1.5em;
-                border-radius:4px; margin-bottom:1em;">
-      <p style="margin:0;">
-        <strong>Thank you.</strong> Your message has been received, and a
-        member of our staff will be in touch with you soon.
-      </p>
-    </div>
-    <p>
-      <a href="/">Return to the homepage</a> ·
-      <a href="/contact">Send another message</a>
-    </p>
+<section class="page-intro">
+  <div class="container">
+    <div class="eyebrow">Get in touch</div>
+    <h1>Contact Us</h1>
+  </div>
+</section>
 
-  <?php else: ?>
-    <p style="color:#555; line-height:1.5;">
-      Have a question, a comment, or want to learn more about Settle Memorial?
-      Use the form below and we'll get back to you. You can also reach the
-      church office at <strong>(270) 684-4226</strong>.
-    </p>
+<section class="section">
+  <div class="container">
 
-    <form method="post" action="/contact" novalidate
-          style="background:#fff; padding:1.5em; border-radius:4px;
-                 box-shadow:0 1px 3px rgba(0,0,0,0.05); margin-top:1em;">
-
-      <?= \Settle\Csrf::field() ?>
-
-      <!--
-        Honeypot field. Real browsers don't see it, but bots that
-        auto-fill every input will. Server treats any non-empty value
-        as a silent drop. Position-absolute keeps it out of layout,
-        tabindex=-1 keeps it out of tab order, autocomplete=off keeps
-        browsers from helpfully prefilling it.
-      -->
-      <div style="position:absolute; left:-9999px; top:auto;
-                  width:1px; height:1px; overflow:hidden;"
-           aria-hidden="true">
-        <label for="website">Website (leave blank)</label>
-        <input type="text" id="website" name="website" value=""
-               tabindex="-1" autocomplete="off">
+    <?php if ($success): ?>
+      <div class="form__success" style="max-width: 640px; margin-inline: auto; text-align: center;">
+        <h2 style="margin-top: 0; color: inherit;">Thank you</h2>
+        <p style="margin-bottom: 0;">
+          Your message has been received. We'll be in touch soon.
+        </p>
       </div>
+      <div style="text-align: center; margin-top: 2rem;">
+        <a class="btn btn--ghost" href="/">Return Home</a>
+      </div>
+    <?php else: ?>
 
-      <!-- Name -->
-      <div style="margin-bottom:1em;">
-        <label for="sender_name" style="display:block; font-weight:500; margin-bottom:0.3em;">
-          Your name <span style="color:var(--error);">*</span>
-        </label>
-        <input type="text" id="sender_name" name="sender_name"
-               value="<?= $nameVal ?>"
-               maxlength="150" required
-               style="width:100%; padding:0.5em; box-sizing:border-box;
-                      border:1px solid #ccc; border-radius:3px;">
-        <?php if (!empty($errors['sender_name'])): ?>
-          <div style="color:var(--error); font-size:0.9em; margin-top:0.3em;">
-            <?= htmlspecialchars($errors['sender_name'], ENT_QUOTES) ?>
+      <div style="max-width: 640px; margin: 0 auto 2rem;">
+        <?php if ($s('church_phone') !== '' || $s('church_address_line1') !== ''): ?>
+          <div style="background: var(--bg-soft); border-radius: 8px; padding: 1.25rem 1.5rem; text-align: center; margin-bottom: 2rem;">
+            <?php if ($s('church_phone') !== ''): ?>
+              <div><strong>Call us:</strong> <a href="tel:<?= $e(preg_replace('/\D+/', '', $s('church_phone'))) ?>"><?= $e($s('church_phone')) ?></a></div>
+            <?php endif; ?>
+            <?php if ($s('church_office_hours') !== ''): ?>
+              <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem;"><?= $e($s('church_office_hours')) ?></div>
+            <?php endif; ?>
+            <?php if ($s('church_address_line1') !== ''): ?>
+              <div style="margin-top: 0.5rem;"><strong>Visit:</strong> <?= $e($s('church_address_line1')) ?>, <?= $e($s('church_address_city')) ?>, <?= $e($s('church_address_state')) ?> <?= $e($s('church_address_zip')) ?></div>
+            <?php endif; ?>
           </div>
         <?php endif; ?>
       </div>
 
-      <!-- Email -->
-      <div style="margin-bottom:1em;">
-        <label for="sender_email" style="display:block; font-weight:500; margin-bottom:0.3em;">
-          Email address
-        </label>
-        <input type="email" id="sender_email" name="sender_email"
-               value="<?= $emailVal ?>"
-               maxlength="190"
-               style="width:100%; padding:0.5em; box-sizing:border-box;
-                      border:1px solid #ccc; border-radius:3px;">
-        <?php if (!empty($errors['sender_email'])): ?>
-          <div style="color:var(--error); font-size:0.9em; margin-top:0.3em;">
-            <?= htmlspecialchars($errors['sender_email'], ENT_QUOTES) ?>
-          </div>
+      <form method="post" action="/contact" class="form" style="margin-inline: auto;" novalidate>
+        <?= Csrf::field() ?>
+
+        <!-- Honeypot field. Real users never see or fill it. -->
+        <div class="form__honeypot" aria-hidden="true">
+          <label>Website (leave blank)
+            <input type="text" name="website" value="" tabindex="-1" autocomplete="off">
+          </label>
+        </div>
+
+        <?php if (!empty($errors['_general'])): ?>
+          <div class="form__error"><?= $e($errors['_general']) ?></div>
         <?php endif; ?>
-      </div>
 
-      <!-- Phone -->
-      <div style="margin-bottom:1em;">
-        <label for="sender_phone" style="display:block; font-weight:500; margin-bottom:0.3em;">
-          Phone number
-        </label>
-        <input type="tel" id="sender_phone" name="sender_phone"
-               value="<?= $phoneVal ?>"
-               maxlength="50"
-               style="width:100%; padding:0.5em; box-sizing:border-box;
-                      border:1px solid #ccc; border-radius:3px;">
-        <?php if (!empty($errors['sender_phone'])): ?>
-          <div style="color:var(--error); font-size:0.9em; margin-top:0.3em;">
-            <?= htmlspecialchars($errors['sender_phone'], ENT_QUOTES) ?>
+        <div class="form__field">
+          <label class="form__label" for="cm_name">Your Name <span class="req">*</span></label>
+          <input
+            type="text"
+            id="cm_name"
+            name="sender_name"
+            class="form__input"
+            value="<?= $e($data['sender_name'] ?? '') ?>"
+            maxlength="150"
+            autocomplete="name"
+            required
+          >
+          <?php if (!empty($errors['sender_name'])): ?>
+            <div class="form__error" style="margin-top: 0.5rem;"><?= $e($errors['sender_name']) ?></div>
+          <?php endif; ?>
+        </div>
+
+        <div class="form__field">
+          <label class="form__label">Best way to reach you <span class="req">*</span></label>
+          <div class="form__radio-group">
+            <label class="form__radio-option">
+              <input type="radio" name="reply_method" value="email" <?= ($data['reply_method'] ?? 'email') === 'email' ? 'checked' : '' ?>>
+              <span>Email</span>
+            </label>
+            <label class="form__radio-option">
+              <input type="radio" name="reply_method" value="phone" <?= ($data['reply_method'] ?? '') === 'phone' ? 'checked' : '' ?>>
+              <span>Phone</span>
+            </label>
+            <label class="form__radio-option">
+              <input type="radio" name="reply_method" value="either" <?= ($data['reply_method'] ?? '') === 'either' ? 'checked' : '' ?>>
+              <span>Either</span>
+            </label>
           </div>
-        <?php endif; ?>
-      </div>
+          <?php if (!empty($errors['reply_method'])): ?>
+            <div class="form__error" style="margin-top: 0.5rem;"><?= $e($errors['reply_method']) ?></div>
+          <?php endif; ?>
+        </div>
 
-      <!-- Reply method -->
-      <fieldset style="margin-bottom:1em; padding:0.8em 1em;
-                       background:#f8f8f8; border:1px solid #e5e5e5;
-                       border-radius:3px;">
-        <legend style="font-weight:500; padding:0 0.4em;">
-          How should we get back to you?
-        </legend>
-        <label style="display:block; margin:0.3em 0; cursor:pointer;">
-          <input type="radio" name="reply_method" value="email"
-                 <?= $reply === 'email' ? 'checked' : '' ?>>
-          By email
-        </label>
-        <label style="display:block; margin:0.3em 0; cursor:pointer;">
-          <input type="radio" name="reply_method" value="phone"
-                 <?= $reply === 'phone' ? 'checked' : '' ?>>
-          By phone
-        </label>
-        <label style="display:block; margin:0.3em 0; cursor:pointer;">
-          <input type="radio" name="reply_method" value="either"
-                 <?= $reply === 'either' ? 'checked' : '' ?>>
-          Either is fine
-        </label>
-        <?php if (!empty($errors['reply_method'])): ?>
-          <div style="color:var(--error); font-size:0.9em; margin-top:0.3em;">
-            <?= htmlspecialchars($errors['reply_method'], ENT_QUOTES) ?>
-          </div>
-        <?php endif; ?>
-      </fieldset>
+        <div class="form__field">
+          <label class="form__label" for="cm_email">Email</label>
+          <input
+            type="email"
+            id="cm_email"
+            name="sender_email"
+            class="form__input"
+            value="<?= $e($data['sender_email'] ?? '') ?>"
+            maxlength="190"
+            autocomplete="email"
+          >
+          <?php if (!empty($errors['sender_email'])): ?>
+            <div class="form__error" style="margin-top: 0.5rem;"><?= $e($errors['sender_email']) ?></div>
+          <?php endif; ?>
+        </div>
 
-      <!-- Message body -->
-      <div style="margin-bottom:1em;">
-        <label for="message_text" style="display:block; font-weight:500; margin-bottom:0.3em;">
-          Your message <span style="color:var(--error);">*</span>
-        </label>
-        <textarea id="message_text" name="message_text" rows="8"
-                  maxlength="5000" required
-                  style="width:100%; padding:0.5em; box-sizing:border-box;
-                         border:1px solid #ccc; border-radius:3px;
-                         font-family:inherit; font-size:1em; resize:vertical;"
-        ><?= $messageVal ?></textarea>
-        <?php if (!empty($errors['message_text'])): ?>
-          <div style="color:var(--error); font-size:0.9em; margin-top:0.3em;">
-            <?= htmlspecialchars($errors['message_text'], ENT_QUOTES) ?>
-          </div>
-        <?php endif; ?>
-      </div>
+        <div class="form__field">
+          <label class="form__label" for="cm_phone">Phone</label>
+          <input
+            type="tel"
+            id="cm_phone"
+            name="sender_phone"
+            class="form__input"
+            value="<?= $e($data['sender_phone'] ?? '') ?>"
+            maxlength="50"
+            autocomplete="tel"
+          >
+          <?php if (!empty($errors['sender_phone'])): ?>
+            <div class="form__error" style="margin-top: 0.5rem;"><?= $e($errors['sender_phone']) ?></div>
+          <?php endif; ?>
+        </div>
 
-      <!-- Submit -->
-      <button type="submit" class="btn-primary"
-              style="padding:0.7em 1.5em; font-size:1em; cursor:pointer;">
-        Send message
-      </button>
-    </form>
+        <div class="form__field">
+          <label class="form__label" for="cm_message">Your Message <span class="req">*</span></label>
+          <textarea
+            id="cm_message"
+            name="message_text"
+            class="form__textarea"
+            maxlength="5000"
+            required
+          ><?= $e($data['message_text'] ?? '') ?></textarea>
+          <?php if (!empty($errors['message_text'])): ?>
+            <div class="form__error" style="margin-top: 0.5rem;"><?= $e($errors['message_text']) ?></div>
+          <?php endif; ?>
+        </div>
 
-  <?php endif; ?>
-</div>
+        <div style="margin-top: 2rem;">
+          <button type="submit" class="btn">Send Message</button>
+        </div>
+      </form>
+
+    <?php endif; ?>
+
+  </div>
+</section>

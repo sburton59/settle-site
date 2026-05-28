@@ -7,6 +7,7 @@ use Settle\Auth;
 use Settle\AuditLog;
 use Settle\Csrf;
 use Settle\Model\PrayerRequest;
+use Settle\PublicView;
 
 /**
  * Prayer Requests — public intake form + admin inbox.
@@ -133,13 +134,13 @@ final class PrayerRequestController extends BaseController
     }
 
     /**
-     * Public side uses the public.php layout instead of admin.php.
+     * Public side uses the public.php layout AND injects $settings +
+     * $menu_tree into the template scope (which the public layout
+     * requires). PublicView::render() handles both concerns.
      */
     private function renderPublic(string $template, array $data): void
     {
-        // We bypass the base render() because that defaults to the admin
-        // layout. The View renderer accepts a layout override.
-        \Settle\View::render($template, $data, 'public');
+        PublicView::render($template, $data);
     }
 
     private function validatePublic(array $data): array
