@@ -14,7 +14,7 @@ final class AuthController extends BaseController
         $this->render('auth/login', [
             'error'  => $error,
             'return' => $_GET['return'] ?? '/admin',
-        ], 'public');
+        ], 'auth');
     }
 
     public function doLogin(): void
