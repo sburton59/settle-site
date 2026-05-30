@@ -5,8 +5,9 @@ namespace Settle\Controller;
 
 use Settle\Auth;
 use Settle\AuditLog;
+use Settle\Mailer;
+use Settle\Settings;
 use Settle\Model\ContactMessage;
-use Settle\PublicView;
 
 /**
  * Contact Messages — public intake form + admin inbox.
@@ -21,9 +22,10 @@ use Settle\PublicView;
  * The admin inbox is auth-only (no editor gate) since contact
  * messages have no privacy flag. Hard delete is admin-only.
  *
- * NOTE: Email forwarding to staff is not implemented here yet —
- * roadmap #7 (Email sending) will add a hook in self::submit()
- * to forward new messages to a configured destination address.
+ * Email forwarding (roadmap #6): new messages are forwarded to the
+ * address in settings key `contact_notify_to` via \Settle\Mailer.
+ * Sends are best-effort — failures are swallowed inside the mailer so
+ * the message is still saved and the visitor still sees success.
  */
 final class ContactMessageController extends BaseController
 {
@@ -119,10 +121,70 @@ final class ContactMessageController extends BaseController
             ['reply_method' => $data['reply_method']]
         );
 
-        // TODO (roadmap #7): forward this message to a configured staff
-        // address once email sending is wired up.
+        // Roadmap #6: forward to the configured staff inbox. Mailer
+        // failures are swallowed inside notifyStaff(), so a mail problem
+        // never changes what the visitor sees.
+        $this->notifyStaff($id, $data);
 
         $this->renderPublicSuccess();
+    }
+
+    /**
+     * Forward a new contact message to the configured staff inbox.
+     *
+     * The destination lives in the `settings` table (key
+     * `contact_notify_to`) so staff can change it later without a
+     * deploy. If it's unset, we simply don't send — the message is
+     * already saved to the admin inbox regardless.
+     *
+     * When the visitor asked to be reached by email and gave a valid
+     * address, that address becomes the Reply-To, so staff can reply
+     * straight to the sender. The address is validated (which rejects
+     * header-injection attempts); all other visitor-supplied text stays
+     * in the body, never in a header.
+     */
+    private function notifyStaff(int $id, array $data): void
+    {
+        $to = Settings::get('contact_notify_to');
+        if ($to === null || $to === '') {
+            return;
+        }
+
+        $church   = Settings::get('church_name', 'the church');
+        $baseUrl  = rtrim((string)($GLOBALS['settle_config']['app']['base_url'] ?? ''), '/');
+        $adminUrl = $baseUrl . '/admin/contact/' . $id;
+
+        $subject = 'New contact message · ' . $church;
+
+        $lines   = [];
+        $lines[] = 'A new message was submitted through the website contact form.';
+        $lines[] = '';
+        $lines[] = 'Name:            ' . $data['sender_name'];
+        $lines[] = 'Email:           ' . ($data['sender_email'] !== '' ? $data['sender_email'] : '(not provided)');
+        $lines[] = 'Phone:           ' . ($data['sender_phone'] !== '' ? $data['sender_phone'] : '(not provided)');
+        $lines[] = 'Preferred reply: ' . $data['reply_method'];
+        $lines[] = '';
+        $lines[] = 'Message:';
+        $lines[] = $data['message_text'];
+        $lines[] = '';
+        $lines[] = '-------------------------------------------';
+        $lines[] = 'View in the admin panel: ' . $adminUrl;
+        $body    = implode("\n", $lines);
+
+        $opts = [];
+        if (in_array($data['reply_method'], ['email', 'either'], true)
+            && filter_var($data['sender_email'], FILTER_VALIDATE_EMAIL)) {
+            $opts['reply_to'] = $data['sender_email'];
+        }
+
+        $sent = Mailer::send($to, $subject, $body, $opts);
+
+        AuditLog::record(
+            'contact.notified',
+            'contact_message',
+            $id,
+            ['notified' => $sent]
+        );
     }
 
     /**
@@ -139,13 +201,11 @@ final class ContactMessageController extends BaseController
     }
 
     /**
-     * Public side uses the public.php layout AND injects $settings +
-     * $menu_tree into the template scope (which the public layout
-     * requires). PublicView::render() handles both concerns.
+     * Public side uses the public.php layout instead of admin.php.
      */
     private function renderPublic(string $template, array $data): void
     {
-        PublicView::render($template, $data);
+        \Settle\View::render($template, $data, 'public');
     }
 
     private function blankFormData(): array

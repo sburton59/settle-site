@@ -29,6 +29,49 @@ return [
     ],
 
     /*
+     * Email — authenticated SMTP through a cPanel mailbox.
+     *
+     * The site sends transactional notifications (contact-form forwards
+     * and prayer-team alerts) by logging into a real mailbox over SMTP,
+     * so mail goes out domain-aligned (SPF/DKIM) and actually reaches
+     * inboxes — unlike anonymous PHP mail() from a shared-hosting process.
+     *
+     * SETUP (cPanel):
+     *   1. Email Accounts → create the mailbox in 'username' below
+     *      (e.g. noreply@yourdomain) with a strong password.
+     *   2. Email Deliverability → confirm SPF + DKIM exist for the domain
+     *      (cPanel auto-generates them when it manages the domain's DNS;
+     *      if DNS lives at a registrar/Cloudflare, copy the records over).
+     *   3. Put the real mailbox password in 'password' below — in
+     *      config.php only, NEVER in config.example.php and NEVER in git.
+     *
+     * PORT / ENCRYPTION:
+     *   465 + 'ssl'  → implicit TLS  (recommended; simplest to get right)
+     *   587 + 'tls'  → STARTTLS
+     *   (Port 25 is normally blocked on shared hosting — don't use it.)
+     *
+     * from_email / from_name are what recipients see. Keep from_email on
+     * the SAME domain as the mailbox so DKIM stays aligned. At DNS
+     * cutover, point host/username/from_email at the live domain — that's
+     * an edit to config.php on the server, not a code deploy.
+     *
+     * Set 'enabled' => false to disable all outbound mail (e.g. a dev box
+     * with no mailbox yet). The contact + prayer forms still work and
+     * still save to the admin inbox — they just don't send.
+     */
+    'mail' => [
+        'enabled'    => true,
+        'host'       => 'mail.settlemem.org',          // cPanel mail hostname
+        'port'       => 465,                            // 465 (ssl) or 587 (tls)
+        'encryption' => 'ssl',                          // 'ssl' for 465, 'tls' for 587
+        'username'   => 'noreply@settlemem.org',        // full mailbox address
+        'password'   => 'REPLACE_WITH_MAILBOX_PASSWORD',
+        'from_email' => 'noreply@settlemem.org',        // keep on the mailbox's domain
+        'from_name'  => 'Settle Memorial UMC',
+        'timeout'    => 15,                             // socket timeout, seconds
+    ],
+
+    /*
      * Feature flags  (see PROJECT_HANDOFF.md §14.4)
      *
      * For Settle, every flag is true. Each flag turns off:

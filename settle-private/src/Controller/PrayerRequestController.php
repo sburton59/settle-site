@@ -6,8 +6,9 @@ namespace Settle\Controller;
 use Settle\Auth;
 use Settle\AuditLog;
 use Settle\Csrf;
+use Settle\Mailer;
+use Settle\Settings;
 use Settle\Model\PrayerRequest;
-use Settle\PublicView;
 
 /**
  * Prayer Requests — public intake form + admin inbox.
@@ -21,6 +22,11 @@ use Settle\PublicView;
  * Privacy: 'is_private' submissions still land in the same inbox, but
  * the request text is role-gated. Editors and admins can reveal;
  * authors see the row metadata only (no body, no reveal button).
+ *
+ * Email notification (roadmap #6): new requests notify the address in
+ * settings key `prayer_notify_to` via \Settle\Mailer. Private requests
+ * deliberately omit the request text from the email (see
+ * notifyPrayerTeam()) so the role-gate isn't bypassed by email.
  */
 final class PrayerRequestController extends BaseController
 {
@@ -116,7 +122,90 @@ final class PrayerRequestController extends BaseController
             ['is_private' => (int)$data['is_private']]
         );
 
+        // Roadmap #6: notify the prayer team. Best-effort; mailer
+        // failures are swallowed so the visitor still sees success.
+        $this->notifyPrayerTeam($id, $data);
+
         $this->renderPublicSuccess();
+    }
+
+    /**
+     * Notify the prayer team of a new request.
+     *
+     * The destination lives in the `settings` table (key
+     * `prayer_notify_to`) so staff can change it later without a deploy.
+     * If it's unset, we don't send — the request is saved to the admin
+     * inbox regardless.
+     *
+     * PRIVACY: a private request's text is role-gated in the admin panel
+     * (only editor+ can reveal it). Emailing that text out would bypass
+     * the gate, so a private notification carries only the fact that a
+     * private request arrived plus a sign-in-required link to view it —
+     * never the request text, and no Reply-To. Public requests include
+     * the full text and set the submitter as Reply-To when a valid email
+     * was supplied.
+     *
+     * (Note: the submitter's name IS included for private requests, since
+     * it's already visible to every admin role in the inbox list — only
+     * the request body is gated. If the church prefers fully anonymous
+     * private alerts, drop the name line below.)
+     */
+    private function notifyPrayerTeam(int $id, array $data): void
+    {
+        $to = Settings::get('prayer_notify_to');
+        if ($to === null || $to === '') {
+            return;
+        }
+
+        $church    = Settings::get('church_name', 'the church');
+        $baseUrl   = rtrim((string)($GLOBALS['settle_config']['app']['base_url'] ?? ''), '/');
+        $adminUrl  = $baseUrl . '/admin/prayer/' . $id;
+        $isPrivate = (int)$data['is_private'] === 1;
+        $name      = $data['submitter_name'] !== '' ? $data['submitter_name'] : '(anonymous)';
+
+        $opts = [];
+
+        if ($isPrivate) {
+            $subject = 'New PRIVATE prayer request · ' . $church;
+            $lines   = [
+                'A private prayer request was submitted through the website.',
+                '',
+                'Submitted by: ' . $name,
+                '',
+                'For confidentiality, the request text is not included in this',
+                'email. Please view it in the admin panel (sign-in required):',
+                $adminUrl,
+            ];
+        } else {
+            $subject = 'New prayer request · ' . $church;
+            $email   = $data['submitter_email'] !== '' ? $data['submitter_email'] : '(not provided)';
+            $lines   = [
+                'A new prayer request was submitted through the website.',
+                '',
+                'Submitted by: ' . $name,
+                'Email:        ' . $email,
+                '',
+                'Request:',
+                $data['request_text'],
+                '',
+                '-------------------------------------------',
+                'View in the admin panel: ' . $adminUrl,
+            ];
+
+            if (filter_var($data['submitter_email'], FILTER_VALIDATE_EMAIL)) {
+                $opts['reply_to'] = $data['submitter_email'];
+            }
+        }
+
+        $body = implode("\n", $lines);
+        $sent = Mailer::send($to, $subject, $body, $opts);
+
+        AuditLog::record(
+            'prayer.notified',
+            'prayer_request',
+            $id,
+            ['private' => $isPrivate ? 1 : 0, 'notified' => $sent]
+        );
     }
 
     /**
@@ -134,13 +223,13 @@ final class PrayerRequestController extends BaseController
     }
 
     /**
-     * Public side uses the public.php layout AND injects $settings +
-     * $menu_tree into the template scope (which the public layout
-     * requires). PublicView::render() handles both concerns.
+     * Public side uses the public.php layout instead of admin.php.
      */
     private function renderPublic(string $template, array $data): void
     {
-        PublicView::render($template, $data);
+        // We bypass the base render() because that defaults to the admin
+        // layout. The View renderer accepts a layout override.
+        \Settle\View::render($template, $data, 'public');
     }
 
     private function validatePublic(array $data): array
