@@ -160,6 +160,57 @@ $hasWorship = $s('worship_traditional') !== ''
   </section>
 <?php endif; ?>
 
+<?php
+// Upcoming-events widget. $events comes from PublicController::home()
+// (empty unless the calendar feature is on and the cache has events).
+$events = $events ?? [];
+?>
+<?php if ($events !== []): ?>
+  <section class="section">
+    <div class="container">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <div class="eyebrow">Mark Your Calendar</div>
+        <h2>Upcoming Events</h2>
+      </div>
+      <div class="event-grid">
+        <?php foreach ($events as $ev): ?>
+          <?php
+            $featured = !empty($ev['effective_featured']);
+            $startDt  = new \DateTime((string) $ev['starts_at']);
+            $isAllDay = !empty($ev['is_all_day']);
+            if ($isAllDay) {
+                $timeStr = 'All day';
+            } else {
+                $timeStr = $startDt->format('g:i a');
+            }
+          ?>
+          <a class="event-card<?= $featured ? ' event-card--featured' : '' ?>" href="/calendar?ym=<?= $e($startDt->format('Y-m')) ?>#event-<?= (int) $ev['id'] ?>">
+            <div class="event-card__date">
+              <span class="event-card__mon"><?= $e($startDt->format('M')) ?></span>
+              <span class="event-card__day"><?= $e($startDt->format('j')) ?></span>
+            </div>
+            <div class="event-card__body">
+              <?php if ($featured): ?>
+                <span class="event-card__badge">★ Featured</span>
+              <?php endif; ?>
+              <h3 class="event-card__title"><?= $e($ev['title']) ?></h3>
+              <div class="event-card__meta">
+                <span><?= $e($startDt->format('D, M j')) ?> · <?= $e($timeStr) ?></span>
+                <?php if (!empty($ev['location'])): ?>
+                  <span class="event-card__loc"><?= $e($ev['location']) ?></span>
+                <?php endif; ?>
+              </div>
+            </div>
+          </a>
+        <?php endforeach; ?>
+      </div>
+      <div class="u-text-center u-mt-2">
+        <a class="btn btn--ghost" href="/calendar">View Full Calendar</a>
+      </div>
+    </div>
+  </section>
+<?php endif; ?>
+
 <section class="section section--brand">
   <div class="container" style="text-align: center; max-width: 720px; margin-inline: auto;">
     <div class="eyebrow">We'd love to hear from you</div>

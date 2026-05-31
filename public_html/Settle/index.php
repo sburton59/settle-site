@@ -135,6 +135,17 @@ if (Features::enabled('contact')) {
 }
 
 // -------------------------------------------------------------------
+// Calendar (public events from the Google Calendar cache, roadmap #2)
+//   Public month-grid page only. Sync runs via cron (bin/calendar-sync.php),
+//   not a web route. The override-editor admin UI is deferred.
+//   /calendar is already present in MenuController::buildUrlRegistry()
+//   (gated by the same flag), so it appears in the menu URL picker.
+// -------------------------------------------------------------------
+if (Features::enabled('calendar')) {
+    $router->get('/calendar', [PublicController::class, 'calendar']);
+}
+
+// -------------------------------------------------------------------
 // Menu (data-driven public navigation, roadmap #1.5)
 //   Editor+ for moderation. Reorder JSON endpoint accepts the
 //   CSRF token in the X-CSRF-Token header (the router supports
