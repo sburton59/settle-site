@@ -100,9 +100,9 @@ $weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       <div class="calendar-grid__head" role="row">
         <?php foreach ($weekdays as $wd): ?>
           <div class="calendar-grid__weekday" role="columnheader">
-            <span aria-hidden="true"><?= $e(substr($wd, 0, 1)) ?></span>
+            <span class="calendar-grid__weekday-short" aria-hidden="true"><?= $e(substr($wd, 0, 1)) ?></span>
+            <span class="calendar-grid__weekday-full" aria-hidden="true"><?= $e($wd) ?></span>
             <span class="sr-only"><?= $e($wd) ?></span>
-            <span class="calendar-grid__weekday-full" aria-hidden="true"><?= $e(substr($wd, 1)) ?></span>
           </div>
         <?php endforeach; ?>
       </div>

@@ -885,7 +885,7 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 }
 .calendar-grid__weekday-full { display: none; }
 @media (min-width: 700px) {
-  .calendar-grid__weekday span[aria-hidden="true"]:first-child { display: none; }
+  .calendar-grid__weekday-short { display: none; }
   .calendar-grid__weekday-full { display: inline; }
 }
 .calendar-cell {
