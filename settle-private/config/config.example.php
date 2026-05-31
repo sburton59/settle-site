@@ -72,6 +72,60 @@ return [
     ],
 
     /*
+     * Google Calendar  (roadmap #2; see PROJECT_HANDOFF.md §3.3)
+     *
+     * The site mirrors a PUBLIC Google Calendar into the local
+     * calendar_events_cache table and renders the public /calendar page
+     * and homepage widget from that cache — never directly from Google,
+     * so a Google outage can never blank the page.
+     *
+     * AUTH: an API key against a PUBLIC calendar, read-only. No OAuth, no
+     * service account. The api_key is a SECRET — it lives here in
+     * config.php (gitignored, 0640) only, NEVER in config.example.php and
+     * NEVER in git. It is only ever sent server-to-Google.
+     *
+     * SETUP:
+     *   1. In Google Calendar, make the church calendar PUBLIC
+     *      (Settings → Access permissions → "Make available to public").
+     *   2. Copy its Calendar ID (Settings → Integrate calendar → Calendar ID),
+     *      e.g. abc123@group.calendar.google.com — put it in 'calendar_id'.
+     *   3. In Google Cloud Console, create an API key restricted to the
+     *      Google Calendar API (and ideally to your server's IP). Put it
+     *      in 'api_key' below.
+     *   4. Run a sync:  php settle-private/bin/calendar-sync.php
+     *   5. Schedule cron (every 15 min):
+     *      0,15,30,45 * * * * php /home/USER/settle-site-repo/settle-private/bin/calendar-sync.php >/dev/null 2>&1
+     *
+     * LAUNCH SWAP: to move from a dummy/dev calendar to the real church
+     * calendar, change 'calendar_id' (and 'api_key' if different) here on
+     * the server, then flush the cache once:
+     *      DELETE FROM calendar_events_cache;
+     * and run calendar-sync.php. That is a config edit + one query, not a
+     * code deploy. Because both dev and prod calendars are public + API
+     * key, nothing else changes.
+     *
+     * FEATURED EVENTS: staff mark an event for the homepage by putting the
+     * 'featured_keyword' (default "[featured]", case-insensitive) anywhere
+     * in the event's DESCRIPTION inside Google Calendar. The keyword is
+     * detected at sync and stripped from the displayed text.
+     *
+     * Set 'enabled' => false to disable syncing entirely (the /calendar
+     * page still renders from whatever is already cached).
+     */
+    'google_calendar' => [
+        'enabled'            => true,
+        'api_key'            => 'REPLACE_WITH_GOOGLE_API_KEY',     // SECRET — config.php only
+        'calendar_id'        => 'REPLACE_WITH_PUBLIC_CALENDAR_ID', // e.g. abc123@group.calendar.google.com
+        'timezone'           => 'America/Chicago',                 // render events in the church's local tz
+        'featured_keyword'   => '[featured]',                      // case-insensitive, matched in the description
+        'window_past_days'   => 1,                                 // keep just-passed / in-progress events
+        'window_future_days' => 365,                               // how far ahead to cache
+        'cache_ttl'          => 900,                               // seconds; only used by the lazy fallback
+        'lazy_sync'          => false,                             // cron is used; flip true only if cron is unavailable
+        'http_timeout'       => 10,                                // seconds, per request to Google
+    ],
+
+    /*
      * Feature flags  (see PROJECT_HANDOFF.md §14.4)
      *
      * For Settle, every flag is true. Each flag turns off:
