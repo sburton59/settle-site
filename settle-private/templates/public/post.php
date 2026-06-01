@@ -2,16 +2,43 @@
 /**
  * Single blog post.
  *
- * @var array   $post       From PublicController::post() — published post with
- *                          author_name, featured_filename, featured_alt, and
- *                          a 'categories' list of {id,name,slug}
- * @var array   $settings   From PublicView
- * @var array   $menu_tree  From PublicView
+ * @var array   $post       From PublicController::post()
+ * @var bool    $is_preview  True when shown to signed-in staff before it is
+ *                           publicly live (scheduled/draft/archived).
+ * @var array   $settings
+ * @var array   $menu_tree
  * @var Closure $e
  */
-$date = !empty($post['published_at']) ? date('F j, Y', strtotime((string) $post['published_at'])) : '';
+$is_preview = $is_preview ?? false;
+
+$when = $post['published_at'] ?? '';
+if ($when === '' || $when === null) { $when = $post['created_at'] ?? ''; }
+$date = $when ? date('F j, Y', strtotime((string) $when)) : '';
 $img  = !empty($post['featured_filename']) ? '/uploads/' . ltrim((string) $post['featured_filename'], '/') : '';
+
+// Preview banner wording.
+$previewMsg = '';
+if ($is_preview) {
+    $nowStr = date('Y-m-d H:i:s');
+    $status = (string) ($post['status'] ?? '');
+    if ($status === 'published' && !empty($post['published_at']) && $post['published_at'] > $nowStr) {
+        $previewMsg = 'Scheduled — goes live ' . date('F j, Y \a\t g:i a', strtotime((string) $post['published_at']));
+    } elseif ($status === 'draft') {
+        $previewMsg = 'Draft — not published yet';
+    } elseif ($status === 'archived') {
+        $previewMsg = 'Archived — hidden from the website';
+    } else {
+        $previewMsg = 'Not visible to the public yet';
+    }
+}
 ?>
+
+<?php if ($is_preview): ?>
+  <div style="background:var(--brand-primary); color:var(--text-on-dark);
+              text-align:center; padding:0.6rem 1rem; font-size:0.9rem;">
+    <strong>Preview</strong> · <?= $e($previewMsg) ?> — only signed-in staff can see this.
+  </div>
+<?php endif; ?>
 
 <section class="page-intro">
   <div class="container">

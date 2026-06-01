@@ -78,7 +78,9 @@ $activeSlug = $category['slug'] ?? null;
           <?php
             $url  = '/blog/' . rawurlencode((string) $p['slug']);
             $img  = !empty($p['featured_filename']) ? '/uploads/' . ltrim((string) $p['featured_filename'], '/') : '';
-            $date = !empty($p['published_at']) ? date('M j, Y', strtotime((string) $p['published_at'])) : '';
+            $when = $p['published_at'] ?? '';
+            if ($when === '' || $when === null) { $when = $p['created_at'] ?? ''; }
+            $date = $when ? date('M j, Y', strtotime((string) $when)) : '';
             $exc  = $excerptOf($p);
           ?>
           <article class="post-card">

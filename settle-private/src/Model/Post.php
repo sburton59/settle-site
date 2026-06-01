@@ -87,8 +87,11 @@ final class Post
     }
 
     /**
-     * Public single post: published only, and only once its publish time
-     * has arrived. Includes author display name + featured image.
+     * Public single post: published AND its publish time has arrived. The
+     * "now" comparison is bound from PHP (app timezone, America/Chicago per
+     * bootstrap.php) rather than SQL NOW(), so a future-dated post is hidden
+     * exactly until its scheduled moment regardless of the database's own
+     * timezone. Includes author display name + featured image.
      */
     public static function findBySlugPublished(string $slug): ?array
     {
@@ -103,17 +106,42 @@ final class Post
              WHERE p.slug = :s
                AND p.status = :pub
                AND p.published_at IS NOT NULL
-               AND p.published_at <= NOW()
+               AND p.published_at <= :now
              LIMIT 1',
-            [':s' => $slug, ':pub' => 'published']
+            [':s' => $slug, ':pub' => 'published', ':now' => self::now()]
         )->fetch();
         return $row ?: null;
     }
 
     /**
-     * Public listing — published posts, newest first. $limit/$offset are
-     * cast to int and inlined: with PDO emulation off, LIMIT/OFFSET cannot
-     * be bound as parameters (see PROJECT_HANDOFF.md §9, CalendarEvent::upcoming).
+     * Fetch a post by slug regardless of status or publish time. Used only
+     * for the signed-in staff PREVIEW path (a scheduled, draft, or archived
+     * post that is not yet publicly visible). The controller is responsible
+     * for the permission check before showing the result.
+     */
+    public static function findBySlugAny(string $slug): ?array
+    {
+        $row = Database::query(
+            'SELECT p.*,
+                    u.display_name AS author_name,
+                    m.filename     AS featured_filename,
+                    m.alt_text     AS featured_alt
+             FROM posts p
+             LEFT JOIN users u ON u.id = p.author_id
+             LEFT JOIN media m ON m.id = p.featured_media_id
+             WHERE p.slug = :s
+             LIMIT 1',
+            [':s' => $slug]
+        )->fetch();
+        return $row ?: null;
+    }
+
+    /**
+     * Public listing — published posts whose publish time has arrived, newest
+     * first. Scheduled (future-dated) posts are excluded via the bound :now
+     * comparison; ordering falls back to created_at when published_at is
+     * somehow missing. $limit/$offset are cast to int and inlined: with PDO
+     * emulation off, LIMIT/OFFSET cannot be bound (PROJECT_HANDOFF.md §9).
      */
     public static function publishedList(int $limit, int $offset = 0): array
     {
@@ -129,10 +157,10 @@ final class Post
              LEFT JOIN media m ON m.id = p.featured_media_id
              WHERE p.status = :pub
                AND p.published_at IS NOT NULL
-               AND p.published_at <= NOW()
-             ORDER BY p.published_at DESC
+               AND p.published_at <= :now
+             ORDER BY COALESCE(p.published_at, p.created_at) DESC
              LIMIT ' . (int) $limit . ' OFFSET ' . (int) $offset,
-            [':pub' => 'published']
+            [':pub' => 'published', ':now' => self::now()]
         )->fetchAll();
     }
 
@@ -140,12 +168,12 @@ final class Post
     {
         return (int) Database::query(
             'SELECT COUNT(*) FROM posts
-             WHERE status = :pub AND published_at IS NOT NULL AND published_at <= NOW()',
-            [':pub' => 'published']
+             WHERE status = :pub AND published_at IS NOT NULL AND published_at <= :now',
+            [':pub' => 'published', ':now' => self::now()]
         )->fetchColumn();
     }
 
-    /** Public listing filtered to one category. */
+    /** Public listing filtered to one category (live, published posts only). */
     public static function publishedListByCategory(int $categoryId, int $limit, int $offset = 0): array
     {
         $limit  = max(1, $limit);
@@ -161,10 +189,10 @@ final class Post
              LEFT JOIN media m ON m.id = p.featured_media_id
              WHERE p.status = :pub
                AND p.published_at IS NOT NULL
-               AND p.published_at <= NOW()
-             ORDER BY p.published_at DESC
+               AND p.published_at <= :now
+             ORDER BY COALESCE(p.published_at, p.created_at) DESC
              LIMIT ' . (int) $limit . ' OFFSET ' . (int) $offset,
-            [':cid' => $categoryId, ':pub' => 'published']
+            [':cid' => $categoryId, ':pub' => 'published', ':now' => self::now()]
         )->fetchAll();
     }
 
@@ -173,8 +201,8 @@ final class Post
         return (int) Database::query(
             'SELECT COUNT(*) FROM posts p
              JOIN post_categories pc ON pc.post_id = p.id AND pc.category_id = :cid
-             WHERE p.status = :pub AND p.published_at IS NOT NULL AND p.published_at <= NOW()',
-            [':cid' => $categoryId, ':pub' => 'published']
+             WHERE p.status = :pub AND p.published_at IS NOT NULL AND p.published_at <= :now',
+            [':cid' => $categoryId, ':pub' => 'published', ':now' => self::now()]
         )->fetchColumn();
     }
 
@@ -189,15 +217,14 @@ final class Post
     }
 
     /**
-     * Create a post. published_at is stamped only if the post is created
-     * directly as 'published'.
+     * Create a post. The controller resolves $data['published_at'] (a
+     * 'Y-m-d H:i:s' string, or null) according to the publish-date rules,
+     * so the model just stores it. A future value = a scheduled post.
      *
      * @return int the new post id
      */
     public static function create(array $data, int $authorId): int
     {
-        $publishedAt = ($data['status'] === 'published') ? date('Y-m-d H:i:s') : null;
-
         Database::query(
             'INSERT INTO posts
                 (slug, title, excerpt, body_html, featured_media_id, author_id, status, published_at)
@@ -211,61 +238,55 @@ final class Post
                 ':media'        => $data['featured_media_id'] ?: null,
                 ':author'       => $authorId,
                 ':status'       => $data['status'],
-                ':published_at' => $publishedAt,
+                ':published_at' => $data['published_at'] ?? null,
             ]
         );
         return (int) Database::pdo()->lastInsertId();
     }
 
     /**
-     * Update a post's content + status. author_id is intentionally NOT
-     * touched (ownership never transfers on edit). published_at is stamped
-     * the first time the post becomes 'published' and is otherwise left
-     * exactly as it was.
+     * Update a post's content, status, and publish time. author_id is never
+     * touched (ownership doesn't transfer on edit). $data['published_at'] is
+     * the controller-resolved value (string or null) — a future value
+     * reschedules the post; a past/now value makes it live.
      */
-    public static function update(int $id, array $data, ?string $existingPublishedAt): void
+    public static function update(int $id, array $data): void
     {
-        $stampNow = ($data['status'] === 'published' && empty($existingPublishedAt));
-
-        $sql =
+        Database::query(
             'UPDATE posts SET
                 slug              = :slug,
                 title             = :title,
                 excerpt           = :excerpt,
                 body_html         = :body,
                 featured_media_id = :media,
-                status            = :status'
-            . ($stampNow ? ', published_at = :published_at' : '') .
-            ' WHERE id = :id';
-
-        $params = [
-            ':slug'    => $data['slug'],
-            ':title'   => $data['title'],
-            ':excerpt' => $data['excerpt'] !== '' ? $data['excerpt'] : null,
-            ':body'    => $data['body_html'],
-            ':media'   => $data['featured_media_id'] ?: null,
-            ':status'  => $data['status'],
-            ':id'      => $id,
-        ];
-        if ($stampNow) {
-            $params[':published_at'] = date('Y-m-d H:i:s');
-        }
-
-        Database::query($sql, $params);
+                status            = :status,
+                published_at      = :published_at
+             WHERE id = :id',
+            [
+                ':slug'         => $data['slug'],
+                ':title'        => $data['title'],
+                ':excerpt'      => $data['excerpt'] !== '' ? $data['excerpt'] : null,
+                ':body'         => $data['body_html'],
+                ':media'        => $data['featured_media_id'] ?: null,
+                ':status'       => $data['status'],
+                ':published_at' => $data['published_at'] ?? null,
+                ':id'           => $id,
+            ]
+        );
     }
 
     /**
-     * Change only the status (publish / unpublish / archive). Stamps
-     * published_at the first time the post becomes published; never clears it.
+     * Change status (used by the list's quick publish/unpublish/archive). If
+     * $publishedAt is non-null it is also written (the quick "Publish" button
+     * passes "now"); if null, only the status changes and any existing
+     * published_at is left intact.
      */
-    public static function setStatus(int $id, string $status, ?string $existingPublishedAt): void
+    public static function setStatus(int $id, string $status, ?string $publishedAt): void
     {
-        $stampNow = ($status === 'published' && empty($existingPublishedAt));
-
-        if ($stampNow) {
+        if ($publishedAt !== null) {
             Database::query(
                 'UPDATE posts SET status = :status, published_at = :pa WHERE id = :id',
-                [':status' => $status, ':pa' => date('Y-m-d H:i:s'), ':id' => $id]
+                [':status' => $status, ':pa' => $publishedAt, ':id' => $id]
             );
         } else {
             Database::query(
@@ -273,6 +294,12 @@ final class Post
                 [':status' => $status, ':id' => $id]
             );
         }
+    }
+
+    /** Current time in the app timezone (America/Chicago, set in bootstrap). */
+    public static function now(): string
+    {
+        return date('Y-m-d H:i:s');
     }
 
     public static function delete(int $id): void

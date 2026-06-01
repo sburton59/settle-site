@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Settle\Controller;
 
+use Settle\Auth;
 use Settle\Features;
 use Settle\Model\CalendarEvent;
 use Settle\Model\Category;
@@ -198,25 +199,56 @@ final class PublicController extends BaseController
     }
 
     /**
-     * Public single post. 404s unless the post exists, is published, and its
-     * publish time has arrived (Post::findBySlugPublished enforces all three).
-     * body_html is the one trusted column and is rendered unescaped; every
-     * other field is escaped in the template.
+     * Public single post. A published, past-dated post is shown to everyone.
+     * A post that is NOT yet publicly visible (scheduled for the future, or a
+     * draft/archived) is shown only to signed-in staff who are allowed to
+     * preview it — the post's own author, or any editor — with a banner making
+     * clear it isn't live yet. Everyone else (and anonymous visitors) gets 404.
      */
     public function post(array $params): void
     {
-        $post = Post::findBySlugPublished((string) $params['slug']);
+        $slug = (string) $params['slug'];
+
+        $post      = Post::findBySlugPublished($slug); // live to the public
+        $isPreview = false;
+
+        if (!$post) {
+            $candidate = Post::findBySlugAny($slug);
+            if ($candidate !== null && $this->canPreview($candidate)) {
+                $post      = $candidate;
+                $isPreview = true;
+            }
+        }
+
         if (!$post) {
             http_response_code(404);
             echo 'Post not found.';
             return;
         }
+
         $post['categories'] = Post::categoriesFor((int) $post['id']);
 
         PublicView::render('public/post', [
             'page_title' => (string) $post['title'],
             'post'       => $post,
+            'is_preview' => $isPreview,
         ]);
+    }
+
+    /**
+     * May the current viewer preview a not-yet-live post? Only signed-in
+     * staff: any editor+, or the post's own author. Mirrors the in-code
+     * ownership rule used in the admin (PostController).
+     */
+    private function canPreview(array $post): bool
+    {
+        if (!Auth::check()) {
+            return false;
+        }
+        if (Auth::hasRole('editor')) {
+            return true;
+        }
+        return (int) $post['author_id'] === (int) ($_SESSION['user_id'] ?? 0);
     }
 
     /**

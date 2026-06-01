@@ -3,15 +3,31 @@
  * @var array $posts     Rows from Post::allForAdmin()
  * @var bool  $isEditor  True if the viewer is editor or admin
  */
-$statusBadge = static function (string $status): string {
-    [$label, $bg, $fg] = match ($status) {
-        'published' => ['Published', '#1f7a3d', '#fff'],
-        'archived'  => ['Archived',  '#6b6b6b', '#fff'],
-        default     => ['Draft',     '#e4e4e4', '#333'],
-    };
-    return '<span style="display:inline-block; font-size:0.78em; padding:0.1em 0.6em;'
-         . ' border-radius:1em; background:' . $bg . '; color:' . $fg . ';">'
-         . $label . '</span>';
+$now = date('Y-m-d H:i:s');
+$statusBadge = static function (array $p) use ($now): string {
+    $status = (string) $p['status'];
+    $pa     = (string) ($p['published_at'] ?? '');
+    $scheduled = ($status === 'published' && $pa !== '' && $pa > $now);
+
+    if ($scheduled) {
+        [$label, $bg, $fg] = ['Scheduled', '#b8860b', '#fff'];
+    } elseif ($status === 'published') {
+        [$label, $bg, $fg] = ['Published', '#1f7a3d', '#fff'];
+    } elseif ($status === 'archived') {
+        [$label, $bg, $fg] = ['Archived', '#6b6b6b', '#fff'];
+    } else {
+        [$label, $bg, $fg] = ['Draft', '#e4e4e4', '#333'];
+    }
+
+    $html = '<span style="display:inline-block; font-size:0.78em; padding:0.1em 0.6em;'
+          . ' border-radius:1em; background:' . $bg . '; color:' . $fg . ';">'
+          . $label . '</span>';
+    if ($scheduled) {
+        $html .= '<br><small class="muted">'
+               . htmlspecialchars(date('M j, Y g:i a', strtotime($pa)), ENT_QUOTES)
+               . '</small>';
+    }
+    return $html;
 };
 ?>
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1em;">
@@ -50,7 +66,7 @@ $statusBadge = static function (string $status): string {
           <?= htmlspecialchars($p['title'], ENT_QUOTES) ?><br>
           <code class="muted">/blog/<?= htmlspecialchars($p['slug'], ENT_QUOTES) ?></code>
         </td>
-        <td><?= $statusBadge((string) $p['status']) ?></td>
+        <td><?= $statusBadge($p) ?></td>
         <td><?= htmlspecialchars($p['category_names'] ?? '', ENT_QUOTES) ?: '<span class="muted">—</span>' ?></td>
         <?php if ($isEditor): ?>
           <td><?= htmlspecialchars($p['author_name'] ?? '', ENT_QUOTES) ?></td>

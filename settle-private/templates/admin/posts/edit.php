@@ -12,6 +12,16 @@ $action  = $isNew ? '/admin/posts' : '/admin/posts/' . (int) $post['id'];
 $selected = array_flip(array_map('intval', $selectedCats ?? []));
 $autoPreview = !empty($_GET['preview']);
 $status = $post['status'] ?? 'draft';
+
+// Prefill the publish date/time field: prefer a raw re-render value
+// (post['publish_at'], set on a validation failure), else format the stored
+// published_at into the datetime-local shape, else leave blank.
+$pubAtInput = '';
+if (isset($post['publish_at']) && $post['publish_at'] !== '') {
+    $pubAtInput = (string) $post['publish_at'];
+} elseif (!empty($post['published_at'])) {
+    $pubAtInput = date('Y-m-d\TH:i', strtotime((string) $post['published_at']));
+}
 ?>
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1em;">
   <h1 style="margin:0;"><?= $isNew ? 'New Post' : 'Editing: ' . htmlspecialchars($post['title'], ENT_QUOTES) ?></h1>
@@ -103,6 +113,19 @@ $status = $post['status'] ?? 'draft';
     </select>
     <?php if (!empty($errors['status'])): ?>
       <small style="color:var(--error);"><?= htmlspecialchars($errors['status'], ENT_QUOTES) ?></small>
+    <?php endif; ?>
+  </label>
+
+  <label>Publish date &amp; time <span class="muted">(optional)</span>
+    <input type="datetime-local" name="publish_at"
+           value="<?= htmlspecialchars($pubAtInput, ENT_QUOTES) ?>">
+    <small class="muted">
+      Applies when Status is &ldquo;Published.&rdquo; Leave blank to publish immediately;
+      set a future date &amp; time to schedule it. Signed-in staff can preview a scheduled
+      post before it goes live.
+    </small>
+    <?php if (!empty($errors['publish_at'])): ?>
+      <small style="color:var(--error);"><?= htmlspecialchars($errors['publish_at'], ENT_QUOTES) ?></small>
     <?php endif; ?>
   </label>
 

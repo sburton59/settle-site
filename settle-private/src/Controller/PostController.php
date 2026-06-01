@@ -59,14 +59,22 @@ final class PostController extends BaseController
             return;
         }
 
+        $data['published_at'] = $this->resolvePublishedAt($data['status'], $data['publish_at'], null);
+
         $id = Post::create($data, (int) $_SESSION['user_id']);
         Post::syncCategories($id, $data['category_ids']);
         AuditLog::record('post.create', 'post', $id, ['title' => $data['title'], 'status' => $data['status']]);
         if ($data['status'] === 'published') {
-            AuditLog::record('post.publish', 'post', $id);
+            $scheduled = $data['published_at'] !== null && $data['published_at'] > Post::now();
+            AuditLog::record(
+                $scheduled ? 'post.schedule' : 'post.publish',
+                'post',
+                $id,
+                $scheduled ? ['publish_at' => $data['published_at']] : []
+            );
         }
 
-        $this->flash('success', 'Post created.');
+        $this->flash('success', $this->savedFlash($data));
         $this->redirect($this->editUrl($id, $data['slug']));
     }
 
@@ -114,15 +122,27 @@ final class PostController extends BaseController
             return;
         }
 
-        $wasPublished = !empty($post['published_at']);
-        Post::update($id, $data, $post['published_at'] ?? null);
+        $data['published_at'] = $this->resolvePublishedAt(
+            $data['status'],
+            $data['publish_at'],
+            $post['published_at'] ?? null
+        );
+        $becamePublished = ($data['status'] === 'published' && ($post['status'] ?? '') !== 'published');
+
+        Post::update($id, $data);
         Post::syncCategories($id, $data['category_ids']);
         AuditLog::record('post.update', 'post', $id, ['title' => $data['title'], 'status' => $data['status']]);
-        if ($data['status'] === 'published' && !$wasPublished) {
-            AuditLog::record('post.publish', 'post', $id);
+        if ($becamePublished) {
+            $scheduled = $data['published_at'] !== null && $data['published_at'] > Post::now();
+            AuditLog::record(
+                $scheduled ? 'post.schedule' : 'post.publish',
+                'post',
+                $id,
+                $scheduled ? ['publish_at' => $data['published_at']] : []
+            );
         }
 
-        $this->flash('success', 'Post saved.');
+        $this->flash('success', $this->savedFlash($data));
         $this->redirect($this->editUrl($id, $data['slug']));
     }
 
@@ -145,7 +165,10 @@ final class PostController extends BaseController
             return;
         }
 
-        Post::setStatus($id, $status, $post['published_at'] ?? null);
+        // The list's quick "Publish" means "make it live now"; unpublish and
+        // archive leave the existing publish date alone (pass null).
+        $publishedAt = ($status === 'published') ? Post::now() : null;
+        Post::setStatus($id, $status, $publishedAt);
 
         $verb = match ($status) {
             'published' => 'post.publish',
@@ -156,6 +179,17 @@ final class PostController extends BaseController
 
         $this->flash('success', 'Post status updated.');
         $this->redirect('/admin/posts');
+    }
+
+    /** Flash wording that reflects whether a save scheduled the post. */
+    private function savedFlash(array $data): string
+    {
+        if ($data['status'] === 'published'
+            && ($data['published_at'] ?? null) !== null
+            && $data['published_at'] > Post::now()) {
+            return 'Post scheduled for ' . date('M j, Y \a\t g:i a', strtotime((string) $data['published_at'])) . '.';
+        }
+        return 'Post saved.';
     }
 
     public function destroy(array $params): void
@@ -231,6 +265,7 @@ final class PostController extends BaseController
             'body_html'         => (string) $this->input('body_html', ''),
             'featured_media_id' => $media > 0 ? $media : null,
             'status'            => (string) $this->input('status', 'draft'),
+            'publish_at'        => trim((string) $this->input('publish_at', '')),
             'category_ids'      => $cats,
         ];
     }
@@ -255,11 +290,41 @@ final class PostController extends BaseController
             $errors['status'] = 'Please choose a valid status.';
         }
 
+        if ($data['status'] === 'published'
+            && $data['publish_at'] !== ''
+            && strtotime($data['publish_at']) === false) {
+            $errors['publish_at'] = 'Enter a valid date and time, or leave it blank to publish now.';
+        }
+
         if (mb_strlen($data['excerpt']) > 500) {
             $errors['excerpt'] = 'Summary must be 500 characters or fewer.';
         }
 
         return $errors;
+    }
+
+    /**
+     * Resolve the published_at value to store, given the chosen status, the
+     * raw datetime-local input, and the post's existing published_at.
+     *   - not published        → leave the existing value untouched
+     *   - a parseable date/time → use it (future = scheduled; past/now = live)
+     *   - blank                 → keep the existing date, or "now" if none yet
+     * The "now" baseline is the app timezone (America/Chicago, per bootstrap),
+     * matching the bound :now the public queries compare against.
+     */
+    private function resolvePublishedAt(string $status, string $raw, ?string $existing): ?string
+    {
+        if ($status !== 'published') {
+            return $existing;
+        }
+        $raw = trim($raw);
+        if ($raw !== '') {
+            $ts = strtotime($raw);
+            if ($ts !== false) {
+                return date('Y-m-d H:i:s', $ts);
+            }
+        }
+        return $existing ?: Post::now();
     }
 
     /**
