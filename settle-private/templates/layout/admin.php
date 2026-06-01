@@ -3,6 +3,7 @@
 /** @var array|null $_user */
 
 use Settle\Features;
+use Settle\Auth;
 ?>
 <!doctype html>
 <html lang="en">
@@ -75,6 +76,10 @@ use Settle\Features;
           </span>
         <?php endif; ?>
       </a>
+    <?php endif; ?>
+
+    <?php if (Auth::hasRole('admin')): ?>
+      <a href="/admin/settings">Settings</a>
     <?php endif; ?>
   </nav>
   <div class="signin">

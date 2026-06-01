@@ -29,6 +29,7 @@ use Settle\Controller\PagesController;
 use Settle\Controller\PostController;
 use Settle\Controller\PrayerRequestController;
 use Settle\Controller\PublicController;
+use Settle\Controller\SettingsController;
 use Settle\Controller\SlideshowController;
 use Settle\Controller\StaffController;
 
@@ -48,6 +49,14 @@ $router->post('/admin/logout', [AuthController::class, 'logout']);
 
 // Admin dashboard
 $router->get('/admin', [DashboardController::class, 'index'], ['auth' => true]);
+
+// -------------------------------------------------------------------
+// Settings (admin-only) — church identity, contact, notifications,
+// worship times, social/app links, homepage copy, SEO meta, branding.
+// Core admin, not an optional feature, so no Features flag gate.
+// -------------------------------------------------------------------
+$router->get ('/admin/settings', [SettingsController::class, 'edit'],   ['auth' => true, 'role' => 'admin']);
+$router->post('/admin/settings', [SettingsController::class, 'update'], ['auth' => true, 'role' => 'admin']);
 
 // -------------------------------------------------------------------
 // Pages

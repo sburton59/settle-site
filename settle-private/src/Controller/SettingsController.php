@@ -1,0 +1,267 @@
+<?php
+declare(strict_types=1);
+
+namespace Settle\Controller;
+
+use Settle\Auth;
+use Settle\AuditLog;
+use Settle\Settings;
+
+/**
+ * Admin Settings — church identity, contact, email-notification routing,
+ * worship times, social/app links, homepage copy, SEO meta, and branding
+ * (logo/favicon via the Media Library + brand colors).
+ *
+ * Admin-only. Settings are global per-church key/value rows, so there is
+ * no per-record ownership — a plain admin role gate (route-level AND a
+ * defense-in-depth in-code check here) is the whole access story.
+ *
+ * Persistence reuses \Settle\Settings::put() (upsert + per-request cache
+ * flush); there is NO settings schema change. Brand IMAGE settings
+ * (logo/favicon/apple icon) are URLs the public layout already reads, so
+ * they apply as soon as they are saved. Brand COLOR settings
+ * (brand_primary, brand_ink) are persisted here and applied by an inline
+ * <style> override emitted from the public layout (Phase 2); until that
+ * ships they save fine but do not yet change the public CSS.
+ *
+ * Validation is server-side and ATOMIC: if any field is invalid, NOTHING
+ * is written and the form re-renders with per-field errors and the values
+ * the user typed. Colors are validated against a strict 6-digit hex
+ * pattern here AND again at emit time in the layout (defense in depth — a
+ * value set via raw SQL still can't break or inject CSS).
+ *
+ * See PROJECT_HANDOFF.md §15 (theming/branding plan), §9 (conventions),
+ * §3.5 (security baseline).
+ */
+final class SettingsController extends BaseController
+{
+    /**
+     * Editable settings, grouped for the form. Order here IS the display
+     * order. This is the single source of truth shared by edit() (prefill),
+     * update() (which keys to read + how to validate), and the template
+     * (rendering). Only keys listed here can be written — anything else
+     * posted is ignored, so the form can never set an arbitrary key.
+     *
+     * Field 'type': text | textarea | email | url | media | color
+     *   'max'     — max characters (validated server-side)
+     *   'short'   — render a narrow input (phone, city, state, zip)
+     *   'help'    — hint text under the label
+     *   'default' — (color only) swatch fallback shown when the value is
+     *               blank; the theme.css default for that variable
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function groups(): array
+    {
+        return [
+            ['title' => 'Identity',
+             'intro' => 'The church name and tagline shown across the site.',
+             'fields' => [
+                ['key' => 'church_name',       'label' => 'Full church name', 'type' => 'text', 'max' => 190],
+                ['key' => 'church_short_name', 'label' => 'Short name',       'type' => 'text', 'max' => 120,
+                 'help' => 'Used where space is tight, e.g. the header when no logo is set.'],
+                ['key' => 'church_tagline',    'label' => 'Tagline',          'type' => 'text', 'max' => 190],
+            ]],
+
+            ['title' => 'Contact',
+             'fields' => [
+                ['key' => 'church_phone',         'label' => 'Phone',           'type' => 'text',  'max' => 50,  'short' => true],
+                ['key' => 'church_office_email',  'label' => 'Office email',    'type' => 'email', 'max' => 190],
+                ['key' => 'church_office_hours',  'label' => 'Office hours',    'type' => 'text',  'max' => 190],
+                ['key' => 'church_mailing',       'label' => 'Mailing address', 'type' => 'text',  'max' => 190],
+                ['key' => 'church_address_line1', 'label' => 'Street address',  'type' => 'text',  'max' => 150],
+                ['key' => 'church_address_city',  'label' => 'City',            'type' => 'text',  'max' => 100, 'short' => true],
+                ['key' => 'church_address_state', 'label' => 'State',           'type' => 'text',  'max' => 20,  'short' => true],
+                ['key' => 'church_address_zip',   'label' => 'ZIP',             'type' => 'text',  'max' => 20,  'short' => true],
+            ]],
+
+            ['title' => 'Email notifications',
+             'intro' => 'Where website form submissions are sent. Changes take effect immediately — no deploy needed.',
+             'fields' => [
+                ['key' => 'contact_notify_to', 'label' => 'Contact form goes to',  'type' => 'email', 'max' => 190],
+                ['key' => 'prayer_notify_to',  'label' => 'Prayer requests go to', 'type' => 'email', 'max' => 190],
+            ]],
+
+            ['title' => 'Worship times',
+             'fields' => [
+                ['key' => 'worship_traditional',   'label' => 'Traditional',   'type' => 'text', 'max' => 190],
+                ['key' => 'worship_contemporary',  'label' => 'Contemporary',  'type' => 'text', 'max' => 190],
+                ['key' => 'worship_sunday_school', 'label' => 'Sunday school', 'type' => 'text', 'max' => 190],
+            ]],
+
+            ['title' => 'Social & apps',
+             'intro' => 'Full web addresses. Leave a field blank to hide that link.',
+             'fields' => [
+                ['key' => 'social_facebook',  'label' => 'Facebook',    'type' => 'url', 'max' => 500],
+                ['key' => 'social_instagram', 'label' => 'Instagram',   'type' => 'url', 'max' => 500],
+                ['key' => 'social_youtube',   'label' => 'YouTube',     'type' => 'url', 'max' => 500],
+                ['key' => 'app_ios_url',      'label' => 'iOS app',     'type' => 'url', 'max' => 500],
+                ['key' => 'app_android_url',  'label' => 'Android app', 'type' => 'url', 'max' => 500],
+            ]],
+
+            ['title' => 'Homepage',
+             'fields' => [
+                ['key' => 'homepage_welcome_heading', 'label' => 'Welcome heading',   'type' => 'text',     'max' => 150],
+                ['key' => 'homepage_welcome_lead',    'label' => 'Welcome lead text', 'type' => 'textarea', 'max' => 500],
+            ]],
+
+            ['title' => 'Meta / SEO',
+             'fields' => [
+                ['key' => 'meta_description',      'label' => 'Meta description', 'type' => 'textarea', 'max' => 300,
+                 'help' => 'Shown by search engines and in link previews.'],
+                ['key' => 'meta_copyright_holder', 'label' => 'Copyright holder', 'type' => 'text',     'max' => 190],
+            ]],
+
+            ['title' => 'Branding',
+             'intro' => 'Logo and icons come from the Media Library. Brand colors apply across the public site; leave a color blank to use the built-in theme default.',
+             'fields' => [
+                ['key' => 'brand_logo_url',       'label' => 'Logo',                 'type' => 'media', 'max' => 500],
+                ['key' => 'brand_favicon_url',    'label' => 'Favicon (32×32)',      'type' => 'media', 'max' => 500],
+                ['key' => 'brand_apple_icon_url', 'label' => 'Apple touch icon (180×180)', 'type' => 'media', 'max' => 500],
+                ['key' => 'brand_primary',        'label' => 'Primary color',        'type' => 'color', 'max' => 7,
+                 'default' => '#9E2A2B', 'help' => 'Header, nav, and accents. Theme default #9E2A2B.'],
+                ['key' => 'brand_ink',            'label' => 'Ink color',            'type' => 'color', 'max' => 7,
+                 'default' => '#2C2C2E', 'help' => 'Dark text and shield tone. Theme default #2C2C2E.'],
+            ]],
+        ];
+    }
+
+    /**
+     * Flatten groups() to [key => fieldSpec].
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function flatFields(): array
+    {
+        $out = [];
+        foreach (self::groups() as $group) {
+            foreach ($group['fields'] as $f) {
+                $out[$f['key']] = $f;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * GET /admin/settings — show the grouped form, prefilled from settings.
+     */
+    public function edit(): void
+    {
+        if (!Auth::hasRole('admin')) {
+            http_response_code(403);
+            echo 'Forbidden.';
+            return;
+        }
+
+        $this->render('admin/settings/edit', [
+            'groups' => self::groups(),
+            'data'   => Settings::all(),
+            'errors' => [],
+        ]);
+    }
+
+    /**
+     * POST /admin/settings — validate, persist changed keys, audit.
+     * Atomic: any validation error writes nothing.
+     */
+    public function update(): void
+    {
+        if (!Auth::hasRole('admin')) {
+            http_response_code(403);
+            echo 'Forbidden.';
+            return;
+        }
+
+        $fields = self::flatFields();
+
+        // Read every known field — and ONLY known fields.
+        $posted = [];
+        foreach ($fields as $key => $spec) {
+            $posted[$key] = trim((string) $this->input($key, ''));
+        }
+
+        $errors = $this->validate($posted, $fields);
+        if ($errors) {
+            $this->render('admin/settings/edit', [
+                'groups' => self::groups(),
+                // Echo back what the user typed; merge over current so any
+                // non-field keys remain present (the form ignores them).
+                'data'   => array_merge(Settings::all(), $posted),
+                'errors' => $errors,
+            ]);
+            return;
+        }
+
+        $current = Settings::all();
+        $changed = [];
+        foreach ($posted as $key => $val) {
+            if (($current[$key] ?? '') !== $val) {
+                Settings::put($key, $val);
+                $changed[] = $key;
+            }
+        }
+
+        if ($changed) {
+            AuditLog::record('settings.update', 'settings', null, ['changed' => $changed]);
+            $n = count($changed);
+            $this->flash('success', $n . ' setting' . ($n === 1 ? '' : 's') . ' updated.');
+        } else {
+            $this->flash('info', 'No changes to save.');
+        }
+
+        $this->redirect('/admin/settings');
+    }
+
+    /**
+     * Validate posted values against the field schema. Blank is allowed for
+     * every field (clears the value / falls back to a default). Returns
+     * [key => message]; an empty array means OK.
+     *
+     * @param array<string, string>             $posted
+     * @param array<string, array<string,mixed>> $fields
+     * @return array<string, string>
+     */
+    private function validate(array $posted, array $fields): array
+    {
+        $errors = [];
+
+        foreach ($fields as $key => $spec) {
+            $val = $posted[$key] ?? '';
+            $max = (int) ($spec['max'] ?? 255);
+
+            if ($val !== '' && mb_strlen($val) > $max) {
+                $errors[$key] = $spec['label'] . ' must be ' . $max . ' characters or fewer.';
+                continue;
+            }
+
+            if ($val === '') {
+                continue; // blank is always allowed
+            }
+
+            switch ($spec['type']) {
+                case 'email':
+                    if (!filter_var($val, FILTER_VALIDATE_EMAIL)) {
+                        $errors[$key] = 'Enter a valid email address.';
+                    }
+                    break;
+
+                case 'url':
+                case 'media':
+                    if (!filter_var($val, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $val)) {
+                        $errors[$key] = 'Enter a full web address starting with http:// or https://.';
+                    }
+                    break;
+
+                case 'color':
+                    if (!preg_match('/^#[0-9a-fA-F]{6}$/', $val)) {
+                        $errors[$key] = 'Use a 6-digit hex color, e.g. #9E2A2B.';
+                    }
+                    break;
+
+                // text / textarea: length already checked above
+            }
+        }
+
+        return $errors;
+    }
+}
