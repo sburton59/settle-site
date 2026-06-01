@@ -3,7 +3,7 @@
  * Admin Settings form.
  *
  * @var array $groups  Field schema from SettingsController::groups()
- * @var array $data    [key => current/echoed-back value]
+ * @var array $values  [key => current/echoed-back value]
  * @var array $errors  [key => message]
  *
  * Field rendering is driven entirely by the schema in $groups, so adding
@@ -15,9 +15,9 @@
  * use. Settings store the image URL (not a media id), so we save d.url.
  */
 $errors = $errors ?? [];
-$data   = $data ?? [];
+$values = $values ?? [];
 
-$val = static fn(string $k): string => (string) ($data[$k] ?? '');
+$val = static fn(string $k): string => (string) ($values[$k] ?? '');
 $err = static function (string $k) use ($errors): string {
     return empty($errors[$k]) ? ''
         : '<small style="color:var(--error); display:block; margin-top:0.25em;">'

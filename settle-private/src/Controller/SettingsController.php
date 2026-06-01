@@ -208,9 +208,12 @@ final class SettingsController extends BaseController
             return;
         }
 
+        // NOTE: the values key must NOT be named 'data' — View::render's
+        // own parameter is $data, and its extract(..., EXTR_SKIP) would
+        // then skip our key, leaving the template's values undefined.
         $this->render('admin/settings/edit', [
             'groups' => self::groups(),
-            'data'   => self::prefillData(),
+            'values' => self::prefillData(),
             'errors' => [],
         ]);
     }
@@ -240,7 +243,7 @@ final class SettingsController extends BaseController
             $this->render('admin/settings/edit', [
                 'groups' => self::groups(),
                 // Echo back exactly what the user typed so they can fix it.
-                'data'   => $posted,
+                'values' => $posted,
                 'errors' => $errors,
             ]);
             return;
