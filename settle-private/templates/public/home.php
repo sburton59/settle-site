@@ -139,19 +139,16 @@ $hasWorship = $s('worship_traditional') !== ''
       <div style="display: grid; gap: 1.5rem; grid-template-columns: 1fr; max-width: 900px; margin-inline: auto;">
         <?php if ($s('worship_sunday_school') !== ''): ?>
           <div style="background: #fff; padding: 1.5rem; border-radius: 8px; text-align: center;">
-            <h3 style="font-size: 0.85rem; color: var(--brand-primary);">Sunday School</h3>
             <div style="font-size: 1.05rem;"><?= $e($s('worship_sunday_school')) ?></div>
           </div>
         <?php endif; ?>
         <?php if ($s('worship_traditional') !== ''): ?>
           <div style="background: #fff; padding: 1.5rem; border-radius: 8px; text-align: center;">
-            <h3 style="font-size: 0.85rem; color: var(--brand-primary);">Traditional</h3>
             <div style="font-size: 1.05rem;"><?= $e($s('worship_traditional')) ?></div>
           </div>
         <?php endif; ?>
         <?php if ($s('worship_contemporary') !== ''): ?>
           <div style="background: #fff; padding: 1.5rem; border-radius: 8px; text-align: center;">
-            <h3 style="font-size: 0.85rem; color: var(--brand-primary);">Contemporary</h3>
             <div style="font-size: 1.05rem;"><?= $e($s('worship_contemporary')) ?></div>
           </div>
         <?php endif; ?>

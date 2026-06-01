@@ -130,6 +130,39 @@ $renderMobileMenu = static function (array $items, Closure $e) use (&$renderMobi
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lato:wght@400;700&display=swap">
 
 <link rel="stylesheet" href="/assets/css/theme.css">
+<?php
+/*
+ * Brand-color override (Settings UI / Branding, roadmap #4).
+ *
+ * Emit a small inline <style> that overrides theme.css's :root brand
+ * variables from the DB-backed settings, so an admin can recolor the
+ * public site without touching CSS. Loaded AFTER theme.css so the
+ * cascade lets these win.
+ *
+ * SECURITY: each value is re-validated against a strict 6-digit hex
+ * pattern HERE, at emit time — never trust the stored value. This is
+ * defense in depth on top of SettingsController's validation: even a
+ * value placed directly in the DB via raw SQL cannot break out of the
+ * declaration or inject CSS. A blank/invalid value is omitted, so
+ * theme.css's own default for that variable stands.
+ *
+ * v1 overrides only the two base variables (--brand-primary,
+ * --brand-ink). The derived shades (--brand-primary-dark/-darker,
+ * --brand-ink-soft) keep their theme.css values for now; coherent
+ * shade derivation is deferred to the #4c design pass (per the
+ * approved plan, Option A).
+ */
+$brandOverrides = [];
+foreach (['brand_primary' => '--brand-primary', 'brand_ink' => '--brand-ink'] as $key => $cssVar) {
+    $val = $s($key);
+    if ($val !== '' && preg_match('/^#[0-9a-fA-F]{6}$/', $val)) {
+        $brandOverrides[] = $cssVar . ':' . $val;
+    }
+}
+if ($brandOverrides !== []):
+?>
+<style>:root{<?= implode(';', $brandOverrides) ?>}</style>
+<?php endif; ?>
 </head>
 <body class="public">
 

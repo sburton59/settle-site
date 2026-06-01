@@ -63,6 +63,13 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('brand_favicon_url',    'https://settleumc.com/wp-content/uploads/cropped-Favicon-32x32.png'),
 ('brand_apple_icon_url', 'https://settleumc.com/wp-content/uploads/cropped-Favicon-180x180.png'),
 
+-- Brand colors (override theme.css :root defaults via an inline <style>
+-- emitted by the public layout; validated against /^#[0-9a-fA-F]{6}$/.
+-- These match theme.css's shipped defaults so a fresh install looks
+-- identical until an admin changes them. Blank/invalid => theme.css wins.
+('brand_primary',        '#9E2A2B'),
+('brand_ink',            '#2C2C2E'),
+
 -- Meta / SEO defaults
 ('meta_description',     'Settle Memorial United Methodist Church, Owensboro, Kentucky — a faith journey where you can connect with new friends, learn more about Jesus, and experience His transforming love and grace.'),
 ('meta_copyright_holder','Settle Memorial United Methodist Church'),
