@@ -1030,3 +1030,148 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 }
 .calendar-list__notes { margin: 0.25rem 0; font-weight: 700; }
 .calendar-list__desc { margin: 0.25rem 0; color: var(--text); }
+
+
+/* ---------- 9. Blog (roadmap #3) ---------- */
+/* Card grid mirrors the staff grid's responsive columns; cards reuse the
+   same surface/shadow/hover language as staff and event cards. All colors
+   reference existing brand variables — no new :root values. */
+
+.blog-grid {
+  display: grid;
+  gap: 1.75rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 600px)  { .blog-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 992px)  { .blog-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.post-card {
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-med), box-shadow var(--transition-med);
+}
+.post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+.post-card__media {
+  display: block;
+  aspect-ratio: 16 / 9;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--bg-soft);
+}
+.post-card__body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+.post-card__title {
+  font-size: 1.15rem;
+  margin: 0;
+  line-height: 1.3;
+}
+.post-card__title a { color: var(--brand-ink); }
+.post-card__title a:hover { color: var(--brand-primary); }
+.post-card__excerpt {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.post-card__meta {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* Category chips (on cards and on the single-post byline) */
+.post-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.post-cats--intro { justify-content: center; margin-bottom: 0.75rem; }
+.post-cat {
+  display: inline-block;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.6rem;
+  border-radius: 1em;
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
+  color: var(--brand-primary);
+}
+.post-cat:hover {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--text-on-dark);
+}
+
+/* Category filter row on the listing */
+.blog-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+.blog-filter__chip {
+  font-size: 0.85rem;
+  padding: 0.3rem 0.9rem;
+  border-radius: 1.5em;
+  border: 1px solid var(--border-soft);
+  background: #fff;
+  color: var(--brand-ink-soft);
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.blog-filter__chip:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+.blog-filter__chip.is-active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--text-on-dark);
+}
+
+/* Pagination */
+.blog-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+.blog-pagination__status { color: var(--text-muted); font-size: 0.9rem; }
+.btn.is-disabled { opacity: 0.4; pointer-events: none; }
+
+/* Single post */
+.post-byline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+.post-single { max-width: 760px; }
+.post-single__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  margin-bottom: 2rem;
+}
+.post-single__footer {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-soft);
+}

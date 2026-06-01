@@ -65,14 +65,21 @@ if (Features::enabled('pages')) {
 
 // -------------------------------------------------------------------
 // Blog (multi-author posts + categories, roadmap #3)
-//   ADMIN side only in this phase. Public /blog routes ship with the
-//   public templates (Phase 3). Posts are author-accessible but each
-//   post's OWNERSHIP is enforced in-code in PostController (an author
-//   manages only their own posts; editors+ manage any). The category
-//   list is editor+ only. Everything is gated by the 'blog' flag, which
-//   also gates the sidebar links and the /blog menu URL-picker entry.
+//   Public: /blog listing, /blog/{slug} single post, /blog/category/{slug}
+//   archive. Admin: posts are author-accessible but each post's OWNERSHIP
+//   is enforced in-code in PostController (an author manages only their own
+//   posts; editors+ manage any). The category list is editor+ only.
+//   Everything is gated by the 'blog' flag, which also gates the sidebar
+//   links and the /blog menu URL-picker entry.
 // -------------------------------------------------------------------
 if (Features::enabled('blog')) {
+    // Public — order matters: the two-segment category route is registered
+    // before the one-segment single-post route so /blog/category/{slug}
+    // can't be swallowed by /blog/{slug}.
+    $router->get('/blog',                 [PublicController::class, 'blog']);
+    $router->get('/blog/category/{slug}', [PublicController::class, 'blogCategory']);
+    $router->get('/blog/{slug}',          [PublicController::class, 'post']);
+
     // Posts — route gate is author+; per-post ownership checked in-code.
     $router->get ('/admin/posts',             [PostController::class, 'index'],     ['auth' => true, 'role' => 'author']);
     $router->get ('/admin/posts/new',         [PostController::class, 'create'],    ['auth' => true, 'role' => 'author']);

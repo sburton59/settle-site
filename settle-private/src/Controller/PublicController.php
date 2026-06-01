@@ -4,7 +4,9 @@ namespace Settle\Controller;
 
 use Settle\Features;
 use Settle\Model\CalendarEvent;
+use Settle\Model\Category;
 use Settle\Model\Page;
+use Settle\Model\Post;
 use Settle\Model\Slideshow;
 use Settle\Model\Staff;
 use Settle\PublicView;
@@ -20,6 +22,9 @@ use Settle\PublicView;
  */
 final class PublicController extends BaseController
 {
+    /** Posts per page on the blog listing and category archives. */
+    private const BLOG_PER_PAGE = 9;
+
     public function home(): void
     {
         $about  = Page::findBySlug('about');
@@ -126,5 +131,106 @@ final class PublicController extends BaseController
             'events'        => $events,
             'events_by_day' => $eventsByDay,
         ]);
+    }
+
+    /**
+     * Public blog listing — published posts, newest first, paginated.
+     * Also reused for category archives via the shared 'public/blog'
+     * template (see blogCategory()).
+     */
+    public function blog(): void
+    {
+        $page    = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = self::BLOG_PER_PAGE;
+        $offset  = ($page - 1) * $perPage;
+
+        $total      = Post::publishedCount();
+        $posts      = Post::publishedList($perPage, $offset);
+        $totalPages = max(1, (int) ceil($total / $perPage));
+
+        $this->attachCategories($posts);
+
+        PublicView::render('public/blog', [
+            'page_title'   => 'Blog',
+            'posts'        => $posts,
+            'current_page' => $page,
+            'total_pages'  => $totalPages,
+            'category'     => null,
+            'base_path'    => '/blog',
+            'all_categories' => Category::allForPicker(),
+        ]);
+    }
+
+    /**
+     * Public category archive — published posts in one category. 404s on an
+     * unknown category slug. Renders through the same 'public/blog' template
+     * with a category context.
+     */
+    public function blogCategory(array $params): void
+    {
+        $category = Category::findBySlug((string) $params['slug']);
+        if (!$category) {
+            http_response_code(404);
+            echo 'Category not found.';
+            return;
+        }
+
+        $page    = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = self::BLOG_PER_PAGE;
+        $offset  = ($page - 1) * $perPage;
+
+        $cid        = (int) $category['id'];
+        $total      = Post::publishedCountByCategory($cid);
+        $posts      = Post::publishedListByCategory($cid, $perPage, $offset);
+        $totalPages = max(1, (int) ceil($total / $perPage));
+
+        $this->attachCategories($posts);
+
+        PublicView::render('public/blog', [
+            'page_title'     => $category['name'] . ' — Blog',
+            'posts'          => $posts,
+            'current_page'   => $page,
+            'total_pages'    => $totalPages,
+            'category'       => $category,
+            'base_path'      => '/blog/category/' . $category['slug'],
+            'all_categories' => Category::allForPicker(),
+        ]);
+    }
+
+    /**
+     * Public single post. 404s unless the post exists, is published, and its
+     * publish time has arrived (Post::findBySlugPublished enforces all three).
+     * body_html is the one trusted column and is rendered unescaped; every
+     * other field is escaped in the template.
+     */
+    public function post(array $params): void
+    {
+        $post = Post::findBySlugPublished((string) $params['slug']);
+        if (!$post) {
+            http_response_code(404);
+            echo 'Post not found.';
+            return;
+        }
+        $post['categories'] = Post::categoriesFor((int) $post['id']);
+
+        PublicView::render('public/post', [
+            'page_title' => (string) $post['title'],
+            'post'       => $post,
+        ]);
+    }
+
+    /**
+     * Attach each post's category list (name/slug pairs) for the listing
+     * chips. The per-page count is small (BLOG_PER_PAGE), so the extra
+     * lookups are cheap and keep the listing query simple.
+     *
+     * @param array<int, array> $posts passed by reference
+     */
+    private function attachCategories(array &$posts): void
+    {
+        foreach ($posts as &$p) {
+            $p['categories'] = Post::categoriesFor((int) $p['id']);
+        }
+        unset($p);
     }
 }
