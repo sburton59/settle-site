@@ -43,10 +43,13 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('church_office_email',  ''),
 ('church_office_hours',  'Tuesday – Thursday, 8:30 a.m. – 3:00 p.m.'),
 
--- Worship times
-('worship_traditional',  'Traditional Worship — 10:00 a.m.'),
-('worship_contemporary', 'Contemporary Worship (SHOUT!) — 10:30 a.m.'),
-('worship_sunday_school','Sunday School — 9:00 a.m.'),
+-- Worship times — TIME ONLY. The service name (e.g. "Traditional
+-- Worship") is supplied by the page templates (homepage "This Sunday"
+-- band and the footer), so these values hold just the time/details to
+-- avoid a duplicated label.
+('worship_traditional',  '10:00 a.m.'),
+('worship_contemporary', '10:30 a.m. (SHOUT!)'),
+('worship_sunday_school','9:00 a.m.'),
 
 -- Social
 ('social_facebook',      'https://www.facebook.com/SettleMem'),

@@ -223,13 +223,13 @@ if ($brandOverrides !== []):
       <div>
         <h4>Worship</h4>
         <?php if ($s('worship_traditional') !== ''): ?>
-          <div><?= $e($s('worship_traditional')) ?></div>
+          <div><strong>Traditional Worship</strong> — <?= $e($s('worship_traditional')) ?></div>
         <?php endif; ?>
         <?php if ($s('worship_contemporary') !== ''): ?>
-          <div><?= $e($s('worship_contemporary')) ?></div>
+          <div><strong>Contemporary Worship</strong> — <?= $e($s('worship_contemporary')) ?></div>
         <?php endif; ?>
         <?php if ($s('worship_sunday_school') !== ''): ?>
-          <div><?= $e($s('worship_sunday_school')) ?></div>
+          <div><strong>Sunday School</strong> — <?= $e($s('worship_sunday_school')) ?></div>
         <?php endif; ?>
         <?php if ($s('church_office_hours') !== ''): ?>
           <h4 style="margin-top: 1.5rem;">Office</h4>

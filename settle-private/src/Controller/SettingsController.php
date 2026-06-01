@@ -104,13 +104,14 @@ final class SettingsController extends BaseController
             ]],
 
             ['title' => 'Worship times',
+             'intro' => 'Enter the time only — the service name is added automatically on the homepage and footer.',
              'fields' => [
                 ['key' => 'worship_traditional',   'label' => 'Traditional',   'type' => 'text', 'max' => 190,
-                 'default' => 'Traditional Worship — 10:00 a.m.'],
+                 'default' => '10:00 a.m.', 'help' => 'e.g. 10:00 a.m.'],
                 ['key' => 'worship_contemporary',  'label' => 'Contemporary',  'type' => 'text', 'max' => 190,
-                 'default' => 'Contemporary Worship (SHOUT!) — 10:30 a.m.'],
+                 'default' => '10:30 a.m. (SHOUT!)', 'help' => 'e.g. 10:30 a.m.'],
                 ['key' => 'worship_sunday_school', 'label' => 'Sunday school', 'type' => 'text', 'max' => 190,
-                 'default' => 'Sunday School — 9:00 a.m.'],
+                 'default' => '9:00 a.m.', 'help' => 'e.g. 9:00 a.m.'],
             ]],
 
             ['title' => 'Social & apps',
