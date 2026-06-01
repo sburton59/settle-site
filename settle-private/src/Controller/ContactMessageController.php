@@ -201,11 +201,18 @@ final class ContactMessageController extends BaseController
     }
 
     /**
-     * Public side uses the public.php layout instead of admin.php.
+     * Public side renders through PublicView, which wraps View::render()
+     * with the public layout AND injects the $settings map and $menu_tree
+     * that the layout requires. Calling View::render() directly here was
+     * the cause of the blank-page bug: the public layout's nav renderer
+     * received a null $menu_tree and threw a TypeError (fatal under
+     * display_errors=off). A default page title is supplied; a caller-
+     * provided 'page_title' would win via the union operator.
      */
     private function renderPublic(string $template, array $data): void
     {
-        \Settle\View::render($template, $data, 'public');
+        $data += ['page_title' => 'Contact Us'];
+        \Settle\PublicView::render($template, $data);
     }
 
     private function blankFormData(): array
