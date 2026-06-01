@@ -98,6 +98,30 @@ CREATE TABLE post_media (
     CONSTRAINT fk_pm_media FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 4b. BLOG CATEGORIES (added roadmap #3)
+-- A curated, editor-managed list of ministry areas (Music, Youth, etc.).
+-- Posts relate to categories many-to-many via post_categories. Authors
+-- assign from this list; only editors+ create/rename/delete categories.
+CREATE TABLE categories (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    slug VARCHAR(150) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    sort_order SMALLINT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_categories_slug (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE post_categories (
+    post_id INT UNSIGNED NOT NULL,
+    category_id INT UNSIGNED NOT NULL,
+    PRIMARY KEY (post_id, category_id),
+    KEY idx_pc_category (category_id),
+    CONSTRAINT fk_pc_post     FOREIGN KEY (post_id)     REFERENCES posts(id)      ON DELETE CASCADE,
+    CONSTRAINT fk_pc_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 5. SLIDESHOW
 CREATE TABLE slideshow_slides (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,

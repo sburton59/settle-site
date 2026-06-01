@@ -28,6 +28,7 @@ use Settle\Features;
 
     <?php if (Features::enabled('blog')): ?>
       <a href="/admin/posts">Blog Posts</a>
+      <a href="/admin/categories">Categories</a>
     <?php endif; ?>
 
     <?php if (Features::enabled('media')): ?>
