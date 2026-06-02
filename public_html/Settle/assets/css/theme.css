@@ -19,10 +19,17 @@
 :root {
   /* Brand colors (sourced from the logo) */
   --brand-primary:        #9E2A2B;
+  /* Derived shades. The static hex is the legacy fallback; the
+     color-mix() line below it wins in modern browsers and tracks the
+     (DB-overridable) --brand-primary so an admin's color change stays
+     coherent across hovers/dark accents. Roadmap #4c (Option A). */
   --brand-primary-dark:   #7E2122;
+  --brand-primary-dark:   color-mix(in srgb, var(--brand-primary) 80%, black);
   --brand-primary-darker: #5E1819;
+  --brand-primary-darker: color-mix(in srgb, var(--brand-primary) 60%, black);
   --brand-ink:            #2C2C2E;   /* the dark-grey from the cross/shield */
   --brand-ink-soft:       #4A4A4D;
+  --brand-ink-soft:       color-mix(in srgb, var(--brand-ink) 85%, white);
 
   /* Neutrals */
   --bg:                   #FFFFFF;
@@ -159,6 +166,83 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 .section--brand h1, .section--brand h2, .section--brand h3, .section--brand h4,
 .section--brand .eyebrow { color: var(--text-on-dark); }
 .section--brand a { color: var(--text-on-dark); }
+
+/* Tighter vertical rhythm — used on the home page (roadmap #4c) so the
+   home bands scroll less without changing the global section padding
+   that interior pages rely on. */
+.section--tight { padding-block: 2.25rem; }
+
+/* ---------- Home-page components (styles lifted from inline home.php) ---------- */
+
+/* Centered intro for a section/sub-section: eyebrow + heading. */
+.section-head {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+/* The "This Sunday" sub-head sits inside the welcome band: add space
+   above to separate it from the welcome copy, less below. */
+.section-head--sub {
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Button row: replaces repeated inline margins between adjacent buttons. */
+.btn-row {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+/* Welcome block. */
+.home-welcome {
+  max-width: 760px;
+  margin-inline: auto;
+  text-align: center;
+}
+.home-welcome__lead {
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+/* Worship-times row. Single column on phones; three across on wider
+   screens (was a hardcoded 1fr that stacked even on desktop). */
+.worship-times {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+  max-width: 760px;
+  margin-inline: auto;
+}
+@media (min-width: 700px) {
+  .worship-times { grid-template-columns: repeat(3, 1fr); }
+}
+.worship-card {
+  background: var(--bg);
+  padding: 1.25rem 1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+.worship-card__service {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin: 0 0 0.35rem;
+}
+.worship-card__time { font-size: 1.05rem; }
+
+/* Get-in-touch CTA. */
+.home-cta {
+  max-width: 720px;
+  margin-inline: auto;
+  text-align: center;
+}
+.home-cta h2 { font-size: 1.6rem; }
+.home-cta p  { margin: 1rem 0 0; opacity: 0.95; }
 
 
 /* Buttons */
@@ -496,6 +580,10 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 .hero--empty h1 {
   color: #fff;
   margin: 0;
+}
+.hero--empty__tagline {
+  opacity: 0.9;
+  margin-top: 1rem;
 }
 
 /* Slideshow container */

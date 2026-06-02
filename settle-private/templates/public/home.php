@@ -80,15 +80,22 @@ $hasSlides = $slides !== [];
     <div class="container">
       <h1><?= $e($s('church_name', 'Welcome')) ?></h1>
       <?php if ($s('church_tagline') !== ''): ?>
-        <p style="opacity: 0.9; margin-top: 1rem;"><?= $e($s('church_tagline')) ?></p>
+        <p class="hero--empty__tagline"><?= $e($s('church_tagline')) ?></p>
       <?php endif; ?>
     </div>
   </section>
 <?php endif; ?>
 
-<section class="section">
+<?php
+// Service-times band shows if at least one worship_* setting is populated.
+$hasWorship = $s('worship_traditional') !== ''
+            || $s('worship_contemporary') !== ''
+            || $s('worship_sunday_school') !== '';
+?>
+<section class="section section--tight section--soft">
   <div class="container">
-    <div style="max-width: 760px; margin-inline: auto; text-align: center;">
+
+    <div class="home-welcome">
       <div class="eyebrow"><?= $e($s('church_short_name', 'Welcome')) ?></div>
       <h2><?= $e($s('homepage_welcome_heading', 'Welcome home')) ?></h2>
       <?php
@@ -113,52 +120,43 @@ $hasSlides = $slides !== [];
         }
       ?>
       <?php if ($lead !== ''): ?>
-        <p style="font-size: 1.1rem; line-height: 1.7;"><?= $e($lead) ?></p>
+        <p class="home-welcome__lead"><?= $e($lead) ?></p>
       <?php endif; ?>
-      <div class="u-mt-2">
+      <div class="btn-row">
         <a class="btn" href="/page/about">Learn More</a>
-        <a class="btn btn--ghost" href="/page/im-new" style="margin-left: 0.5rem;">I'm New</a>
+        <a class="btn btn--ghost" href="/page/im-new">I'm New</a>
       </div>
     </div>
-  </div>
-</section>
 
-<?php
-// Service-times band shows if at least one worship_* setting is populated.
-$hasWorship = $s('worship_traditional') !== ''
-            || $s('worship_contemporary') !== ''
-            || $s('worship_sunday_school') !== '';
-?>
-<?php if ($hasWorship): ?>
-  <section class="section section--soft">
-    <div class="container">
-      <div style="text-align: center; margin-bottom: 2rem;">
+    <?php if ($hasWorship): ?>
+      <div class="section-head section-head--sub">
         <div class="eyebrow">Join Us</div>
-        <h2>This Sunday</h2>
+        <h3>This Sunday</h3>
       </div>
-      <div style="display: grid; gap: 1.5rem; grid-template-columns: 1fr; max-width: 900px; margin-inline: auto;">
+      <div class="worship-times">
         <?php if ($s('worship_sunday_school') !== ''): ?>
-          <div style="background: #fff; padding: 1.5rem; border-radius: 8px; text-align: center;">
-            <h3 style="font-size: 0.85rem; color: var(--brand-primary);">Sunday School</h3>
-            <div style="font-size: 1.05rem;"><?= $e($s('worship_sunday_school')) ?></div>
+          <div class="worship-card">
+            <h4 class="worship-card__service">Sunday School</h4>
+            <div class="worship-card__time"><?= $e($s('worship_sunday_school')) ?></div>
           </div>
         <?php endif; ?>
         <?php if ($s('worship_traditional') !== ''): ?>
-          <div style="background: #fff; padding: 1.5rem; border-radius: 8px; text-align: center;">
-            <h3 style="font-size: 0.85rem; color: var(--brand-primary);">Traditional Worship</h3>
-            <div style="font-size: 1.05rem;"><?= $e($s('worship_traditional')) ?></div>
+          <div class="worship-card">
+            <h4 class="worship-card__service">Traditional Worship</h4>
+            <div class="worship-card__time"><?= $e($s('worship_traditional')) ?></div>
           </div>
         <?php endif; ?>
         <?php if ($s('worship_contemporary') !== ''): ?>
-          <div style="background: #fff; padding: 1.5rem; border-radius: 8px; text-align: center;">
-            <h3 style="font-size: 0.85rem; color: var(--brand-primary);">Contemporary Worship</h3>
-            <div style="font-size: 1.05rem;"><?= $e($s('worship_contemporary')) ?></div>
+          <div class="worship-card">
+            <h4 class="worship-card__service">Contemporary Worship</h4>
+            <div class="worship-card__time"><?= $e($s('worship_contemporary')) ?></div>
           </div>
         <?php endif; ?>
       </div>
-    </div>
-  </section>
-<?php endif; ?>
+    <?php endif; ?>
+
+  </div>
+</section>
 
 <?php
 // Upcoming-events widget. $events comes from PublicController::home()
@@ -166,9 +164,9 @@ $hasWorship = $s('worship_traditional') !== ''
 $events = $events ?? [];
 ?>
 <?php if ($events !== []): ?>
-  <section class="section">
+  <section class="section section--tight">
     <div class="container">
-      <div style="text-align: center; margin-bottom: 2rem;">
+      <div class="section-head">
         <div class="eyebrow">Mark Your Calendar</div>
         <h2>Upcoming Events</h2>
       </div>
@@ -204,21 +202,23 @@ $events = $events ?? [];
           </a>
         <?php endforeach; ?>
       </div>
-      <div class="u-text-center u-mt-2">
+      <div class="btn-row">
         <a class="btn btn--ghost" href="/calendar">View Full Calendar</a>
       </div>
     </div>
   </section>
 <?php endif; ?>
 
-<section class="section section--brand">
-  <div class="container" style="text-align: center; max-width: 720px; margin-inline: auto;">
-    <div class="eyebrow">We'd love to hear from you</div>
-    <h2 style="font-size: 1.6rem;">Get in touch</h2>
-    <p style="margin: 1rem 0 1.5rem; opacity: 0.95;">
-      Have a question? Looking for a place to plug in? Want us to pray for you?
-    </p>
-    <a class="btn btn--on-dark" href="/contact">Contact Us</a>
-    <a class="btn btn--on-dark" href="/prayer" style="margin-left: 0.5rem;">Prayer Request</a>
+<section class="section section--tight section--brand">
+  <div class="container">
+    <div class="home-cta">
+      <div class="eyebrow">We'd love to hear from you</div>
+      <h2>Get in touch</h2>
+      <p>Have a question? Looking for a place to plug in? Want us to pray for you?</p>
+      <div class="btn-row">
+        <a class="btn btn--on-dark" href="/contact">Contact Us</a>
+        <a class="btn btn--on-dark" href="/prayer">Prayer Request</a>
+      </div>
+    </div>
   </div>
 </section>
