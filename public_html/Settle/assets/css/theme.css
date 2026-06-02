@@ -488,7 +488,6 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
   background: var(--bg-band);
   color: var(--text-on-dark);
   padding-block: 3rem 1.5rem;
-  margin-top: 4rem;
 }
 .site-footer a { color: var(--text-on-dark); }
 .site-footer a:hover { color: #fff; }
