@@ -183,12 +183,16 @@ $events = $events ?? [];
             }
             // A website-only override image (set in /admin/calendar) shows as
             // the card background, with a readable dark overlay added via CSS.
+            // media.filename is a relative path (uploads/YYYY/MM/<rand>.<ext>),
+            // so build the URL exactly like the slideshow — keep the slashes as
+            // real path separators (do NOT url-encode them).
             $ovrImg    = (string) ($ev['override_image_filename'] ?? '');
+            $ovrImgUrl = $ovrImg !== '' ? '/uploads/' . ltrim($ovrImg, '/') : '';
             $cardClass = 'event-card'
                 . ($featured ? ' event-card--featured' : '')
-                . ($ovrImg !== '' ? ' event-card--image' : '');
-            $cardStyle = $ovrImg !== ''
-                ? ' style="background-image:url(\'/uploads/' . rawurlencode($ovrImg) . '\')"'
+                . ($ovrImgUrl !== '' ? ' event-card--image' : '');
+            $cardStyle = $ovrImgUrl !== ''
+                ? ' style="background-image:url(\'' . $e($ovrImgUrl) . '\')"'
                 : '';
           ?>
           <a class="<?= $cardClass ?>"<?= $cardStyle ?> href="/calendar?ym=<?= $e($startDt->format('Y-m')) ?>#event-<?= (int) $ev['id'] ?>">
