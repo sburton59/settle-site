@@ -68,6 +68,7 @@ final class GoogleCalendar
 
         $tz         = (string)($cfg['timezone'] ?? 'America/Chicago');
         $keyword    = (string)($cfg['featured_keyword'] ?? '[featured]');
+        $hiddenKw   = (string)($cfg['hidden_keyword'] ?? '[hide]');
         $pastDays   = max(0, (int)($cfg['window_past_days'] ?? 1));
         $futureDays = max(1, (int)($cfg['window_future_days'] ?? 365));
         $timeout    = max(1, (int)($cfg['http_timeout'] ?? 10));
@@ -84,7 +85,7 @@ final class GoogleCalendar
                 return -1;
             }
 
-            $rows = self::normalizeItems($items, $calId, $tz, $keyword);
+            $rows = self::normalizeItems($items, $calId, $tz, $keyword, $hiddenKw);
             self::persist($rows, $calId);
             return count($rows);
         } catch (\Throwable $e) {
@@ -130,7 +131,7 @@ final class GoogleCalendar
      * @param array<int, array<string, mixed>> $items Google `items` array
      * @return array<int, array<string, mixed>> Cache rows
      */
-    public static function normalizeItems(array $items, string $calId, string $tz, string $keyword): array
+    public static function normalizeItems(array $items, string $calId, string $tz, string $keyword, string $hiddenKeyword = ''): array
     {
         try {
             $churchTz = new \DateTimeZone($tz);
@@ -138,6 +139,7 @@ final class GoogleCalendar
             $churchTz = new \DateTimeZone('America/Chicago');
         }
         $kw  = mb_strtolower(trim($keyword));
+        $hkw = mb_strtolower(trim($hiddenKeyword));
         $out = [];
 
         foreach ($items as $it) {
@@ -201,10 +203,18 @@ final class GoogleCalendar
             }
 
             $featured = false;
-            $tag      = null;
-            if ($desc !== null && $kw !== '' && mb_strpos(mb_strtolower($desc), $kw) !== false) {
-                $featured = true;
-                $tag      = $keyword;
+            $hidden   = false;
+            $tags     = [];
+            if ($desc !== null) {
+                $descLower = mb_strtolower($desc);
+                if ($kw !== '' && mb_strpos($descLower, $kw) !== false) {
+                    $featured = true;
+                    $tags[]   = $keyword;
+                }
+                if ($hkw !== '' && mb_strpos($descLower, $hkw) !== false) {
+                    $hidden = true;
+                    $tags[] = $hiddenKeyword;
+                }
             }
 
             $out[] = [
@@ -217,7 +227,8 @@ final class GoogleCalendar
                 'ends_at'            => $endsAt,
                 'is_all_day'         => $isAllDay ? 1 : 0,
                 'is_featured'        => $featured ? 1 : 0,
-                'raw_tags'           => $tag,
+                'is_hidden'          => $hidden ? 1 : 0,
+                'raw_tags'           => $tags === [] ? null : mb_substr(implode(' ', $tags), 0, 500),
                 'html_link'          => ($link !== null && $link !== '') ? mb_substr($link, 0, 500) : null,
             ];
         }
@@ -375,9 +386,9 @@ final class GoogleCalendar
             $up = $pdo->prepare(
                 'INSERT INTO calendar_events_cache
                     (google_event_id, google_calendar_id, title, description, location,
-                     starts_at, ends_at, is_all_day, is_featured, raw_tags, html_link, last_synced_at)
+                     starts_at, ends_at, is_all_day, is_featured, is_hidden, raw_tags, html_link, last_synced_at)
                  VALUES
-                    (:gid, :cal, :title, :descr, :loc, :starts, :ends, :allday, :feat, :tags, :link, NOW())
+                    (:gid, :cal, :title, :descr, :loc, :starts, :ends, :allday, :feat, :hidden, :tags, :link, NOW())
                  ON DUPLICATE KEY UPDATE
                     title          = VALUES(title),
                     description    = VALUES(description),
@@ -386,6 +397,7 @@ final class GoogleCalendar
                     ends_at        = VALUES(ends_at),
                     is_all_day     = VALUES(is_all_day),
                     is_featured    = VALUES(is_featured),
+                    is_hidden      = VALUES(is_hidden),
                     raw_tags       = VALUES(raw_tags),
                     html_link      = VALUES(html_link),
                     last_synced_at = NOW()'
@@ -403,6 +415,7 @@ final class GoogleCalendar
                     ':ends'   => $r['ends_at'],
                     ':allday' => $r['is_all_day'],
                     ':feat'   => $r['is_featured'],
+                    ':hidden' => $r['is_hidden'],
                     ':tags'   => $r['raw_tags'],
                     ':link'   => $r['html_link'],
                 ]);

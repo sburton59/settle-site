@@ -44,13 +44,9 @@ use Settle\Auth;
       <a href="/admin/staff">Staff Directory</a>
     <?php endif; ?>
 
-    <?php /*
-      Calendar has no admin screen yet — events sync from Google Calendar
-      via cron (bin/calendar-sync.php) and render on the public /calendar
-      page. When the override-editor admin UI is built (deferred), restore
-      a link here pointing at /admin/calendar, gated by
-      Features::enabled('calendar').
-    */ ?>
+    <?php if (Features::enabled('calendar')): ?>
+      <a href="/admin/calendar">Calendar</a>
+    <?php endif; ?>
 
     <?php if (Features::enabled('prayer')): ?>
       <?php $_prayerCounts = \Settle\Model\PrayerRequest::countByStatus(); ?>

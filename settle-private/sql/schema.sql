@@ -166,6 +166,7 @@ CREATE TABLE calendar_events_cache (
     ends_at DATETIME NULL,
     is_all_day TINYINT(1) NOT NULL DEFAULT 0,
     is_featured TINYINT(1) NOT NULL DEFAULT 0,
+    is_hidden TINYINT(1) NOT NULL DEFAULT 0,
     raw_tags VARCHAR(500) NULL,
     html_link VARCHAR(500) NULL,
     last_synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

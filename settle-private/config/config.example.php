@@ -118,6 +118,7 @@ return [
         'calendar_id'        => 'REPLACE_WITH_PUBLIC_CALENDAR_ID', // e.g. abc123@group.calendar.google.com
         'timezone'           => 'America/Chicago',                 // render events in the church's local tz
         'featured_keyword'   => '[featured]',                      // case-insensitive, matched in the description
+        'hidden_keyword'     => '[hide]',                          // case-insensitive; [hide] in the description removes the event from the site
         'window_past_days'   => 1,                                 // keep just-passed / in-progress events
         'window_future_days' => 365,                               // how far ahead to cache
         'cache_ttl'          => 900,                               // seconds; only used by the lazy fallback

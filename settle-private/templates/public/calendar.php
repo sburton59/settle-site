@@ -25,13 +25,16 @@ $events_by_day = $events_by_day ?? [];
 // Strip the featured keyword from a description for display.
 $cfg      = $GLOBALS['settle_config']['google_calendar'] ?? [];
 $keyword  = (string)($cfg['featured_keyword'] ?? '[featured]');
-$cleanDesc = static function (?string $desc) use ($keyword): string {
+$hiddenKw = (string)($cfg['hidden_keyword'] ?? '[hide]');
+$cleanDesc = static function (?string $desc) use ($keyword, $hiddenKw): string {
     if ($desc === null || $desc === '') {
         return '';
     }
-    if ($keyword !== '') {
-        // Case-insensitive removal of the keyword token.
-        $desc = preg_replace('/' . preg_quote($keyword, '/') . '/i', '', $desc) ?? $desc;
+    // Case-insensitive removal of the feature/hide keyword tokens.
+    foreach ([$keyword, $hiddenKw] as $kw) {
+        if ($kw !== '') {
+            $desc = preg_replace('/' . preg_quote($kw, '/') . '/i', '', $desc) ?? $desc;
+        }
     }
     return trim($desc);
 };

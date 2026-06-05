@@ -13,19 +13,24 @@ use Settle\Database;
  * overlaying any rows in `calendar_event_overrides` so the church can
  * make website-only adjustments it cannot express in Google Calendar:
  *
- *   - hide            → event is dropped from public output entirely
+ *   - hide            → event is dropped from public output entirely.
+ *                       Driven either by the [hide] tag in the Google
+ *                       Calendar description (cache.is_hidden, synced) or
+ *                       by an override row (override.hide, manual).
  *   - force_featured  → event is treated as featured regardless of tag
  *   - override_image  → an image to show instead of nothing
  *   - notes           → a website-only blurb
  *
  * Overrides are keyed by google_event_id (a stable per-event id from
- * Google). The admin editor for creating overrides is deferred (see the
- * v1.9 handoff); for now overrides are applied here at render time and
- * authored directly in the table.
+ * Google). Hide and feature are authored as [hide] / [featured] tags in
+ * the Google Calendar event description; the admin override editor
+ * (\Settle\Controller\CalendarOverrideController) authors the website-only
+ * image and notes.
  *
  * The effective "featured" flag is (cache.is_featured OR
- * override.force_featured) AND NOT override.hide. Rows are returned with
- * an `effective_featured` column so templates do not re-derive it.
+ * override.force_featured). A row is excluded when cache.is_hidden = 1
+ * (the [hide] tag) OR override.hide = 1. Rows are returned with an
+ * `effective_featured` column so templates do not re-derive it.
  *
  * All stored datetimes are already in the church's local timezone (the
  * sync layer converts before writing), so this model does no timezone
@@ -56,7 +61,8 @@ final class CalendarEvent
         FROM calendar_events_cache c
         LEFT JOIN calendar_event_overrides o ON o.google_event_id = c.google_event_id
         LEFT JOIN media m ON m.id = o.override_image_id
-        WHERE COALESCE(o.hide, 0) = 0
+        WHERE c.is_hidden = 0
+          AND COALESCE(o.hide, 0) = 0
     SQL;
 
     /**
@@ -127,7 +133,8 @@ final class CalendarEvent
             'SELECT COUNT(*)
              FROM calendar_events_cache c
              LEFT JOIN calendar_event_overrides o ON o.google_event_id = c.google_event_id
-             WHERE COALESCE(o.hide, 0) = 0
+             WHERE c.is_hidden = 0
+               AND COALESCE(o.hide, 0) = 0
                AND c.starts_at >= :today
                AND c.starts_at < :horizon',
             [':today' => $today, ':horizon' => $horizon]

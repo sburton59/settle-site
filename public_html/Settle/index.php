@@ -20,6 +20,7 @@ require __DIR__ . '/../../settle-private/src/bootstrap.php';
 use Settle\Features;
 use Settle\Router;
 use Settle\Controller\AuthController;
+use Settle\Controller\CalendarOverrideController;
 use Settle\Controller\CategoryController;
 use Settle\Controller\ContactMessageController;
 use Settle\Controller\DashboardController;
@@ -182,13 +183,20 @@ if (Features::enabled('contact')) {
 
 // -------------------------------------------------------------------
 // Calendar (public events from the Google Calendar cache, roadmap #2)
-//   Public month-grid page only. Sync runs via cron (bin/calendar-sync.php),
-//   not a web route. The override-editor admin UI is deferred.
-//   /calendar is already present in MenuController::buildUrlRegistry()
-//   (gated by the same flag), so it appears in the menu URL picker.
+//   Public month-grid page renders from the cron-synced cache
+//   (bin/calendar-sync.php). Hide/feature are authored as [hide] /
+//   [featured] tags in the Google Calendar event description. The admin
+//   override editor (roadmap #4b) authors only the website-only image and
+//   public note. Editor+; /calendar is already in MenuController's URL
+//   picker (gated by the same flag).
 // -------------------------------------------------------------------
 if (Features::enabled('calendar')) {
     $router->get('/calendar', [PublicController::class, 'calendar']);
+
+    $router->get ('/admin/calendar',                      [CalendarOverrideController::class, 'index'], ['auth' => true, 'role' => 'editor']);
+    $router->get ('/admin/calendar/{id}/edit',            [CalendarOverrideController::class, 'edit'],  ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/calendar/{id}/override',        [CalendarOverrideController::class, 'save'],  ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/calendar/{id}/override/delete', [CalendarOverrideController::class, 'clear'], ['auth' => true, 'role' => 'editor']);
 }
 
 // -------------------------------------------------------------------
