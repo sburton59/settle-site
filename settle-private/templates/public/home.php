@@ -181,8 +181,17 @@ $events = $events ?? [];
             } else {
                 $timeStr = $startDt->format('g:i a');
             }
+            // A website-only override image (set in /admin/calendar) shows as
+            // the card background, with a readable dark overlay added via CSS.
+            $ovrImg    = (string) ($ev['override_image_filename'] ?? '');
+            $cardClass = 'event-card'
+                . ($featured ? ' event-card--featured' : '')
+                . ($ovrImg !== '' ? ' event-card--image' : '');
+            $cardStyle = $ovrImg !== ''
+                ? ' style="background-image:url(\'/uploads/' . rawurlencode($ovrImg) . '\')"'
+                : '';
           ?>
-          <a class="event-card<?= $featured ? ' event-card--featured' : '' ?>" href="/calendar?ym=<?= $e($startDt->format('Y-m')) ?>#event-<?= (int) $ev['id'] ?>">
+          <a class="<?= $cardClass ?>"<?= $cardStyle ?> href="/calendar?ym=<?= $e($startDt->format('Y-m')) ?>#event-<?= (int) $ev['id'] ?>">
             <div class="event-card__date">
               <span class="event-card__mon"><?= $e($startDt->format('M')) ?></span>
               <span class="event-card__day"><?= $e($startDt->format('j')) ?></span>

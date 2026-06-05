@@ -67,7 +67,9 @@ final class CalendarEvent
 
     /**
      * Upcoming events for the homepage widget: events starting today or
-     * later, within $days, featured first, then chronological.
+     * later, within $days, in chronological (date) order. The featured
+     * flag is still surfaced (effective_featured) for the star badge, but
+     * no longer reorders the list.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -84,7 +86,7 @@ final class CalendarEvent
         $sql = self::BASE_SELECT
              . ' AND c.starts_at >= :today
                  AND c.starts_at < :horizon
-                 ORDER BY effective_featured DESC, c.starts_at ASC
+                 ORDER BY c.starts_at ASC, c.id ASC
                  LIMIT ' . (int)$limit;
 
         return Database::query($sql, [

@@ -924,6 +924,32 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 }
 .event-card__loc { font-style: italic; }
 
+/* Event card with a background image (an override image set on an event in
+   /admin/calendar). The per-event image URL is set inline on the card (the
+   one unavoidable inline style, like the slideshow's per-slide background);
+   the readable dark overlay and light text live here. A featured card keeps
+   its brand left-border cue. background-color is a fallback if the image
+   fails to load, so text stays readable. */
+.event-card--image {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--brand-ink);
+  background-size: cover;
+  background-position: center;
+}
+.event-card--image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.62) 100%);
+}
+.event-card--image > * { position: relative; z-index: 1; }
+.event-card--image .event-card__mon,
+.event-card--image .event-card__day,
+.event-card--image .event-card__title,
+.event-card--image .event-card__badge { color: #fff; }
+.event-card--image .event-card__meta { color: rgba(255,255,255,0.85); }
+
 /* Calendar page — month navigation */
 .calendar-nav {
   display: flex;
