@@ -33,6 +33,7 @@ use Settle\Controller\PublicController;
 use Settle\Controller\SettingsController;
 use Settle\Controller\SlideshowController;
 use Settle\Controller\StaffController;
+use Settle\Controller\UserController;
 
 $router = new Router();
 
@@ -58,6 +59,23 @@ $router->get('/admin', [DashboardController::class, 'index'], ['auth' => true]);
 // -------------------------------------------------------------------
 $router->get ('/admin/settings', [SettingsController::class, 'edit'],   ['auth' => true, 'role' => 'admin']);
 $router->post('/admin/settings', [SettingsController::class, 'update'], ['auth' => true, 'role' => 'admin']);
+
+// -------------------------------------------------------------------
+// User management (admin-only) — staff logins, roles, activation.
+// Core admin like Settings, so NO Features flag gate. Deactivating a user
+// blocks login immediately (Auth::attempt checks is_active) AND revokes
+// any live session on its next request (Auth::check re-checks is_active).
+// Hard delete is guarded in-code and may also be refused by FK
+// constraints when the user owns content; deactivate is the primary
+// "remove access" lever. See PROJECT_HANDOFF.md §3.4/§3.5, §9.
+// -------------------------------------------------------------------
+$router->get ('/admin/users',             [UserController::class, 'index'],        ['auth' => true, 'role' => 'admin']);
+$router->get ('/admin/users/new',         [UserController::class, 'create'],       ['auth' => true, 'role' => 'admin']);
+$router->post('/admin/users',             [UserController::class, 'store'],        ['auth' => true, 'role' => 'admin']);
+$router->get ('/admin/users/{id}/edit',   [UserController::class, 'edit'],         ['auth' => true, 'role' => 'admin']);
+$router->post('/admin/users/{id}',        [UserController::class, 'update'],       ['auth' => true, 'role' => 'admin']);
+$router->post('/admin/users/{id}/toggle', [UserController::class, 'toggleActive'], ['auth' => true, 'role' => 'admin']);
+$router->post('/admin/users/{id}/delete', [UserController::class, 'destroy'],      ['auth' => true, 'role' => 'admin']);
 
 // -------------------------------------------------------------------
 // Pages

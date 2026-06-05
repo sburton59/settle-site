@@ -11,6 +11,13 @@ final class Auth
 {
     private const ROLE_RANK = ['author' => 1, 'editor' => 2, 'admin' => 3];
 
+    /**
+     * Memo so the per-request active recheck in check() hits the DB at most
+     * once per request, even though check()/hasRole()/user() may be called
+     * several times. Reset on logout.
+     */
+    private static bool $activeVerified = false;
+
     public static function attempt(string $usernameOrEmail, string $password, bool $remember): bool
     {
         $user = User::findByUsernameOrEmail($usernameOrEmail);
@@ -41,6 +48,10 @@ final class Auth
             : $GLOBALS['settle_config']['session']['lifetime_default'];
         $_SESSION['expires_at'] = time() + (int)$lifetime;
 
+        // This session has just authenticated against a live is_active=1
+        // row, so the per-request recheck below is already satisfied.
+        self::$activeVerified = true;
+
         User::touchLastLogin((int)$user['id']);
         return true;
     }
@@ -52,6 +63,20 @@ final class Auth
             self::logout();
             return false;
         }
+
+        // Per-request active recheck (#5 / #8). An admin can deactivate or
+        // delete an account whose owner is already signed in; without this,
+        // that user would keep their access until the session expired. We
+        // re-verify the account is still active once per request and tear
+        // the session down the moment it isn't (or the row is gone).
+        if (!self::$activeVerified) {
+            if (!User::isActive((int)$_SESSION['user_id'])) {
+                self::logout();
+                return false;
+            }
+            self::$activeVerified = true;
+        }
+
         return true;
     }
 
@@ -75,6 +100,7 @@ final class Auth
 
     public static function logout(): void
     {
+        self::$activeVerified = false;
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();

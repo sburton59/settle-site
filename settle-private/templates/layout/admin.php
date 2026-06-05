@@ -75,6 +75,7 @@ use Settle\Auth;
     <?php endif; ?>
 
     <?php if (Auth::hasRole('admin')): ?>
+      <a href="/admin/users">Users</a>
       <a href="/admin/settings">Settings</a>
     <?php endif; ?>
   </nav>
