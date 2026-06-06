@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Settle\Controller;
 
 use Settle\Auth;
+use Settle\CalendarFormat;
 use Settle\Features;
 use Settle\Model\CalendarEvent;
 use Settle\Model\Category;
@@ -80,10 +81,20 @@ final class PublicController extends BaseController
      * CalendarEvent::forMonth(), which overlays website-only overrides;
      * Google is never contacted during a page view.
      */
+    /** Max own-events shown in a month-grid cell before a "+N More" link. */
+    private const CAL_MAX_PER_DAY = 3;
+
+    /**
+     * Public calendar — month grid with spanning multi-day bars (roadmap
+     * #8a). Multi-day and all-day events render as horizontal bars across
+     * the days they cover; single-day timed events render as time+title
+     * entries inside the day cell. The full visible grid (including
+     * spillover days from adjacent months) is fetched so bars that begin
+     * in the previous month still draw correctly.
+     */
     public function calendar(): void
     {
-        // Parse ?ym=YYYY-MM, falling back to the current month. Clamp to a
-        // sane range so a hand-edited URL can't wander off.
+        // Parse ?ym=YYYY-MM, falling back to the current month. Clamp.
         $now   = new \DateTime('first day of this month');
         $year  = (int)$now->format('Y');
         $month = (int)$now->format('n');
@@ -98,40 +109,221 @@ final class PublicController extends BaseController
             }
         }
 
-        $events = CalendarEvent::forMonth($year, $month);
+        $first     = (new \DateTime())->setDate($year, $month, 1)->setTime(0, 0, 0);
+        $lastDay   = (clone $first)->modify('last day of this month');
+        // Expand to whole weeks (Sun..Sat) so bars can span cleanly.
+        $gridStart = (clone $first)->modify('-' . (int)$first->format('w') . ' days');
+        $gridEnd   = (clone $lastDay)->modify('+' . (6 - (int)$lastDay->format('w')) . ' days');
 
-        // Group events by Y-m-d for quick lookup while drawing the grid.
-        // A multi-day event appears on each day it spans within the month.
-        $eventsByDay = [];
+        $events = CalendarEvent::forRange($gridStart->format('Y-m-d'), $gridEnd->format('Y-m-d'));
+        $weeks  = $this->buildMonthWeeks($month, $gridStart, $gridEnd, $events);
+
+        $prev = (clone $first)->modify('-1 month');
+        $next = (clone $first)->modify('+1 month');
+
+        PublicView::render('public/calendar', [
+            'page_title'  => 'Calendar',
+            'cal_current' => $first,
+            'cal_prev_ym' => $prev->format('Y-m'),
+            'cal_next_ym' => $next->format('Y-m'),
+            'cal_weeks'   => $weeks,
+            'has_events'  => $events !== [],
+            'subscribe'   => $this->subscribeUrls(),
+            'cal_view'    => 'month',
+        ]);
+    }
+
+    /**
+     * Build the month grid as an array of weeks. Each week carries its day
+     * cells (single-day timed events + per-day overflow) and its
+     * lane-assigned multi-day/all-day bars.
+     *
+     * @param array<int,array<string,mixed>> $events events overlapping the grid
+     * @return array<int,array<string,mixed>>
+     */
+    private function buildMonthWeeks(int $month, \DateTime $gridStart, \DateTime $gridEnd, array $events): array
+    {
+        $todayYmd = (new \DateTime('today'))->format('Y-m-d');
+
+        // Split into spanning "bars" (multi-day OR all-day) and in-cell
+        // "singles" (single-day timed events).
+        $bars         = [];
+        $singlesByDay = [];
         foreach ($events as $ev) {
-            $start = new \DateTime((string)$ev['starts_at']);
-            $end   = !empty($ev['ends_at']) ? new \DateTime((string)$ev['ends_at']) : clone $start;
-            if ($end < $start) {
-                $end = clone $start;
+            $startDt = new \DateTime((string)$ev['starts_at']);
+            $endRaw  = !empty($ev['ends_at']) ? new \DateTime((string)$ev['ends_at']) : clone $startDt;
+            if ($endRaw < $startDt) {
+                $endRaw = clone $startDt;
             }
-            $cursor = (clone $start)->setTime(0, 0, 0);
-            $last   = (clone $end)->setTime(0, 0, 0);
-            $guard  = 0;
-            while ($cursor <= $last && $guard++ < 366) {
-                $eventsByDay[$cursor->format('Y-m-d')][] = $ev;
-                $cursor->modify('+1 day');
+            $startDate = (clone $startDt)->setTime(0, 0, 0);
+            $endDate   = (clone $endRaw)->setTime(0, 0, 0);
+
+            $isBar = !empty($ev['is_all_day'])
+                  || ($startDate->format('Y-m-d') !== $endDate->format('Y-m-d'));
+            if ($isBar) {
+                $bars[] = ['ev' => $ev, 'start' => $startDate, 'end' => $endDate];
+            } else {
+                $singlesByDay[$startDate->format('Y-m-d')][] = $ev;
             }
         }
 
-        $current = (new \DateTime())->setDate($year, $month, 1)->setTime(0, 0, 0);
-        $prev    = (clone $current)->modify('-1 month');
-        $next    = (clone $current)->modify('+1 month');
+        $weeks  = [];
+        $cursor = clone $gridStart;
+        $guard  = 0;
+        while ($cursor <= $gridEnd && $guard++ < 60) {
+            $weekStart = clone $cursor;
+            $weekEnd   = (clone $cursor)->modify('+6 days');
 
-        PublicView::render('public/calendar', [
-            'page_title'    => 'Calendar',
-            'cal_year'      => $year,
-            'cal_month'     => $month,
-            'cal_current'   => $current,
-            'cal_prev_ym'   => $prev->format('Y-m'),
-            'cal_next_ym'   => $next->format('Y-m'),
-            'events'        => $events,
-            'events_by_day' => $eventsByDay,
+            $days = [];
+            for ($i = 0; $i < 7; $i++) {
+                $d   = (clone $weekStart)->modify("+{$i} days");
+                $ymd = $d->format('Y-m-d');
+                $days[] = [
+                    'date'     => $ymd,
+                    'day'      => (int)$d->format('j'),
+                    'in_month' => ((int)$d->format('n') === $month),
+                    'is_today' => ($ymd === $todayYmd),
+                    'col'      => $i,
+                    'singles'  => $singlesByDay[$ymd] ?? [],
+                ];
+            }
+
+            // Bars overlapping this week, clipped to the week's columns.
+            $weekBars = [];
+            foreach ($bars as $b) {
+                if ($b['end'] < $weekStart || $b['start'] > $weekEnd) {
+                    continue;
+                }
+                $clipStart = $b['start'] < $weekStart ? clone $weekStart : clone $b['start'];
+                $clipEnd   = $b['end']   > $weekEnd   ? clone $weekEnd   : clone $b['end'];
+                $startCol  = (int)$clipStart->format('w');
+                $endCol    = (int)$clipEnd->format('w');
+                $weekBars[] = [
+                    'ev'              => $b['ev'],
+                    'start_col'       => $startCol,
+                    'span'            => $endCol - $startCol + 1,
+                    'continues_left'  => $b['start'] < $weekStart,
+                    'continues_right' => $b['end']   > $weekEnd,
+                    'link_ymd'        => $clipStart->format('Y-m-d'),
+                ];
+            }
+            // Pack into lanes: earliest column first, longest span first.
+            usort($weekBars, static function (array $a, array $b): int {
+                return [$a['start_col'], -$a['span']] <=> [$b['start_col'], -$b['span']];
+            });
+            $laneEnds = []; // lane index => last occupied column
+            foreach ($weekBars as &$wb) {
+                $placed = false;
+                foreach ($laneEnds as $li => $endC) {
+                    if ($wb['start_col'] > $endC) {
+                        $wb['lane']    = $li;
+                        $laneEnds[$li] = $wb['start_col'] + $wb['span'] - 1;
+                        $placed = true;
+                        break;
+                    }
+                }
+                if (!$placed) {
+                    $li = count($laneEnds);
+                    $wb['lane']    = $li;
+                    $laneEnds[$li] = $wb['start_col'] + $wb['span'] - 1;
+                }
+            }
+            unset($wb);
+
+            // Per-day single overflow, accounting for bars passing through.
+            foreach ($days as &$day) {
+                $col = $day['col'];
+                $barsThrough = 0;
+                foreach ($weekBars as $wb) {
+                    if ($col >= $wb['start_col'] && $col <= ($wb['start_col'] + $wb['span'] - 1)) {
+                        $barsThrough++;
+                    }
+                }
+                $budget = max(0, self::CAL_MAX_PER_DAY - $barsThrough);
+                $day['shown']    = array_slice($day['singles'], 0, $budget);
+                $day['overflow'] = max(0, count($day['singles']) - $budget);
+            }
+            unset($day);
+
+            $weeks[] = [
+                'days'       => $days,
+                'bars'       => $weekBars,
+                'lane_count' => count($laneEnds),
+            ];
+
+            $cursor->modify('+7 days');
+        }
+
+        return $weeks;
+    }
+
+    /**
+     * Public calendar — list view (roadmap #8a). Upcoming (current-or-
+     * future) events in chronological order, paginated like the blog.
+     */
+    public function calendarList(): void
+    {
+        $perPage = 25;
+        $page    = max(1, (int)($_GET['p'] ?? 1));
+
+        $total = CalendarEvent::countUpcoming();
+        $pages = max(1, (int)ceil($total / $perPage));
+        if ($page > $pages) {
+            $page = $pages;
+        }
+        $offset = ($page - 1) * $perPage;
+        $events = CalendarEvent::upcomingList($perPage, $offset);
+
+        PublicView::render('public/calendar_list', [
+            'page_title' => 'Upcoming Events',
+            'events'     => $events,
+            'page'       => $page,
+            'pages'      => $pages,
+            'total'      => $total,
+            'per_page'   => $perPage,
+            'subscribe'  => $this->subscribeUrls(),
+            'cal_view'   => 'list',
         ]);
+    }
+
+    /**
+     * Public calendar — single day view (roadmap #8a). Reached from the
+     * month grid (day numbers, entries, "+N More") and homepage cards. An
+     * invalid date redirects back to the month grid.
+     *
+     * @param array<string,string> $params route params ('date' => 'Y-m-d')
+     */
+    public function calendarDay(array $params): void
+    {
+        $date = (string)($params['date'] ?? '');
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $m)
+            || !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+            $this->redirect('/calendar');
+            return;
+        }
+
+        $d      = (new \DateTime())->setDate((int)$m[1], (int)$m[2], (int)$m[3])->setTime(0, 0, 0);
+        $events = CalendarEvent::forDay($date);
+        $prev   = (clone $d)->modify('-1 day');
+        $next   = (clone $d)->modify('+1 day');
+
+        PublicView::render('public/calendar_day', [
+            'page_title' => $d->format('F j, Y'),
+            'cal_day'    => $d,
+            'events'     => $events,
+            'prev_ymd'   => $prev->format('Y-m-d'),
+            'next_ymd'   => $next->format('Y-m-d'),
+            'month_ym'   => $d->format('Y-m'),
+            'subscribe'  => $this->subscribeUrls(),
+            'cal_view'   => 'day',
+        ]);
+    }
+
+    /** Subscribe links for the configured public calendar (empty if unset). */
+    private function subscribeUrls(): array
+    {
+        $cfg = $GLOBALS['settle_config']['google_calendar'] ?? [];
+        return CalendarFormat::subscribeUrls((string)($cfg['calendar_id'] ?? ''));
     }
 
     /**

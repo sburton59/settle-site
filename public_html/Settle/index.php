@@ -226,6 +226,8 @@ if (Features::enabled('contact')) {
 // -------------------------------------------------------------------
 if (Features::enabled('calendar')) {
     $router->get('/calendar', [PublicController::class, 'calendar']);
+    $router->get('/calendar/list',       [PublicController::class, 'calendarList']);
+    $router->get('/calendar/day/{date}', [PublicController::class, 'calendarDay']);
 
     $router->get ('/admin/calendar',                      [CalendarOverrideController::class, 'index'], ['auth' => true, 'role' => 'editor']);
     $router->get ('/admin/calendar/{id}/edit',            [CalendarOverrideController::class, 'edit'],  ['auth' => true, 'role' => 'editor']);

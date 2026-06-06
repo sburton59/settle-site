@@ -1288,3 +1288,191 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-soft);
 }
+
+
+/* ---------- 8a. Calendar display enhancements ---------- */
+/* Adds: a Month/List view switcher + subscribe links (.cal-toolbar), a
+   month grid whose multi-day / all-day events render as horizontal bars
+   spanning the days they cover (.cal-month / .cal-week / .cal-bar), and
+   day-view chrome. The chronological list/day views reuse the existing
+   .calendar-list and .blog-pagination styles. All colors reference
+   existing brand variables — no new :root values. The older .calendar-grid
+   / .calendar-chip rules above are retained but unused by the new month
+   template (harmless). */
+
+.cal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  max-width: 1000px;
+  margin: 0 auto 1.25rem;
+}
+.cal-views {
+  display: inline-flex;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.cal-views__btn {
+  padding: 0.4rem 1rem;
+  font-size: 0.9rem;
+  color: var(--brand-primary);
+  background: var(--bg);
+  text-decoration: none;
+}
+.cal-views__btn + .cal-views__btn { border-left: 1px solid var(--border-soft); }
+.cal-views__btn:hover { background: var(--bg-soft); }
+.cal-views__btn.is-active { background: var(--brand-primary); color: var(--text-on-dark); }
+.cal-subscribe { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.cal-subscribe .btn { font-size: 0.82rem; padding: 0.4rem 0.85rem; }
+
+/* Month grid */
+.cal-month {
+  max-width: 1000px;
+  margin: 1.25rem auto 0;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg);
+}
+.cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cal-weekday {
+  padding: 0.55rem 0.25rem;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-on-dark);
+  background: var(--brand-primary);
+}
+.cal-weekday__short { display: none; }
+
+/* A week row is the positioning context for that week's spanning bars.
+   --lanes (set inline) is how many bar lanes this week needs; it inherits
+   into the cells so every cell in the row reserves the same top space and
+   stays aligned. --cal-num-h / --cal-bar-h are the day-number and per-lane
+   heights the bar math is built on. */
+.cal-week {
+  position: relative;
+  --cal-num-h: 1.55rem;
+  --cal-bar-h: 1.35rem;
+}
+.cal-week__cells { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cal-cell {
+  position: relative;
+  min-height: 96px;
+  border-top: 1px solid var(--border-soft);
+  border-right: 1px solid var(--border-soft);
+  padding: 0.25rem 0.3rem 0.45rem;
+  padding-top: calc(var(--cal-num-h) + var(--lanes, 0) * var(--cal-bar-h));
+}
+.cal-week__cells .cal-cell:nth-child(7n) { border-right: 0; }
+.cal-cell--out { background: var(--bg-soft); }
+.cal-cell--out .cal-cell__num { color: var(--text-muted); opacity: 0.55; }
+.cal-cell--today { background: rgba(158, 42, 43, 0.06); }
+.cal-cell__num {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--brand-ink);
+  text-decoration: none;
+}
+.cal-cell--today .cal-cell__num {
+  background: var(--brand-primary);
+  color: var(--text-on-dark);
+  border-radius: 1rem;
+}
+.cal-cell__num:hover { color: var(--brand-primary); }
+.cal-cell--today .cal-cell__num:hover { color: var(--text-on-dark); }
+
+/* Spanning bars. left/width come from the start column and span (1/7ths
+   of the row); top from the lane. The small +3px / -6px insets leave a
+   gap between horizontally adjacent bars. */
+.cal-bar {
+  position: absolute;
+  left:  calc(var(--col) / 7 * 100% + 3px);
+  width: calc(var(--span) / 7 * 100% - 6px);
+  top:   calc(var(--cal-num-h) + var(--lane) * var(--cal-bar-h) + 0.1rem);
+  height: calc(var(--cal-bar-h) - 0.25rem);
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0 0.4rem;
+  border-radius: var(--radius);
+  background: var(--brand-ink-soft);
+  color: var(--text-on-dark);
+  font-size: 0.72rem;
+  line-height: 1;
+  text-decoration: none;
+  overflow: hidden;
+  z-index: 1;
+}
+.cal-bar:hover { filter: brightness(1.08); color: var(--text-on-dark); }
+.cal-bar--featured { background: var(--brand-primary); }
+.cal-bar--cont-left  { border-top-left-radius: 0;  border-bottom-left-radius: 0;  margin-left: -3px; }
+.cal-bar--cont-right { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.cal-bar__star { font-size: 0.62rem; }
+.cal-bar__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* In-cell single-day timed entries */
+.cal-cell__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cal-ev {
+  display: block;
+  padding: 1px 4px;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--brand-ink-soft);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: var(--text);
+  text-decoration: none;
+}
+.cal-ev:hover { background: var(--bg-soft); }
+.cal-ev--featured { border-left-color: var(--brand-primary); }
+.cal-ev__time { display: block; font-weight: 700; color: var(--brand-primary); }
+.cal-ev__title {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-more {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.cal-more:hover { color: var(--brand-primary); }
+
+/* Day view — "back to month" link under the day nav */
+.calendar-day__back { text-align: center; margin: 0.4rem 0 0; font-size: 0.9rem; }
+
+/* Tighter month grid on small screens */
+@media (max-width: 640px) {
+  .cal-week { --cal-num-h: 1.35rem; --cal-bar-h: 1.2rem; }
+  .cal-cell { min-height: 74px; padding-inline: 0.2rem; }
+  .cal-bar, .cal-ev { font-size: 0.66rem; }
+  .cal-ev__time { display: inline; }       /* time + title flow together to save height */
+  .cal-ev__title { display: inline; }
+  .cal-weekday__full { display: none; }
+  .cal-weekday__short { display: inline; }
+}

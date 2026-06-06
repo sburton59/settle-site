@@ -144,4 +144,84 @@ final class CalendarEvent
 
         return (int)$n > 0;
     }
+
+    /**
+     * Every event overlapping a date range [from, to] (inclusive), in
+     * chronological order. Used by the month-grid builder (which needs the
+     * full visible grid, including spillover days from adjacent months) and
+     * by forDay(). An event overlaps when it starts before the range ends
+     * and ends on/after the range starts.
+     *
+     * @param string $fromDate 'Y-m-d' (inclusive lower bound)
+     * @param string $toDate   'Y-m-d' (inclusive upper bound)
+     * @return array<int, array<string, mixed>>
+     */
+    public static function forRange(string $fromDate, string $toDate): array
+    {
+        $start  = (new \DateTime($fromDate))->setTime(0, 0, 0);
+        $endExc = (new \DateTime($toDate))->setTime(0, 0, 0)->modify('+1 day');
+
+        $sql = self::BASE_SELECT
+             . ' AND c.starts_at < :end_exc
+                 AND COALESCE(c.ends_at, c.starts_at) >= :start
+                 ORDER BY c.starts_at ASC, c.id ASC';
+
+        return Database::query($sql, [
+            ':end_exc' => $endExc->format('Y-m-d H:i:s'),
+            ':start'   => $start->format('Y-m-d H:i:s'),
+        ])->fetchAll();
+    }
+
+    /**
+     * Events overlapping a single calendar day (handles multi-day events
+     * that pass through the day). Used by the public day view.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function forDay(string $ymd): array
+    {
+        return self::forRange($ymd, $ymd);
+    }
+
+    /**
+     * One page of upcoming events for the public list view: events that are
+     * still current or in the future (ends today or later, so an in-progress
+     * multi-day event is included), chronological, paginated.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function upcomingList(int $limit, int $offset): array
+    {
+        $limit  = max(1, $limit);
+        $offset = max(0, $offset);
+
+        $today = (new \DateTime('today'))->format('Y-m-d H:i:s'); // PHP-bound, §13.8
+
+        // LIMIT/OFFSET are integer-cast inline — PDO in non-emulated mode
+        // cannot bind them as parameters. Safe: hard (int) casts above.
+        $sql = self::BASE_SELECT
+             . ' AND COALESCE(c.ends_at, c.starts_at) >= :today
+                 ORDER BY c.starts_at ASC, c.id ASC
+                 LIMIT ' . (int)$limit . ' OFFSET ' . (int)$offset;
+
+        return Database::query($sql, [':today' => $today])->fetchAll();
+    }
+
+    /** Total upcoming (current-or-future) events, for list-view pagination. */
+    public static function countUpcoming(): int
+    {
+        $today = (new \DateTime('today'))->format('Y-m-d H:i:s');
+
+        $n = Database::query(
+            'SELECT COUNT(*)
+             FROM calendar_events_cache c
+             LEFT JOIN calendar_event_overrides o ON o.google_event_id = c.google_event_id
+             WHERE c.is_hidden = 0
+               AND COALESCE(o.hide, 0) = 0
+               AND COALESCE(c.ends_at, c.starts_at) >= :today',
+            [':today' => $today]
+        )->fetchColumn();
+
+        return (int)$n;
+    }
 }

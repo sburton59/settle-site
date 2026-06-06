@@ -175,12 +175,7 @@ $events = $events ?? [];
           <?php
             $featured = !empty($ev['effective_featured']);
             $startDt  = new \DateTime((string) $ev['starts_at']);
-            $isAllDay = !empty($ev['is_all_day']);
-            if ($isAllDay) {
-                $timeStr = 'All day';
-            } else {
-                $timeStr = $startDt->format('g:i a');
-            }
+            $timeStr  = \Settle\CalendarFormat::clockRange($ev);
             // A website-only override image (set in /admin/calendar) shows as
             // the card background, with a readable dark overlay added via CSS.
             // media.filename is a relative path (uploads/YYYY/MM/<rand>.<ext>),
@@ -195,7 +190,7 @@ $events = $events ?? [];
                 ? ' style="background-image:url(\'' . $e($ovrImgUrl) . '\')"'
                 : '';
           ?>
-          <a class="<?= $cardClass ?>"<?= $cardStyle ?> href="/calendar?ym=<?= $e($startDt->format('Y-m')) ?>#event-<?= (int) $ev['id'] ?>">
+          <a class="<?= $cardClass ?>"<?= $cardStyle ?> href="/calendar/day/<?= $e($startDt->format('Y-m-d')) ?>">
             <div class="event-card__date">
               <span class="event-card__mon"><?= $e($startDt->format('M')) ?></span>
               <span class="event-card__day"><?= $e($startDt->format('j')) ?></span>
