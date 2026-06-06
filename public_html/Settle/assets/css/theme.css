@@ -1136,7 +1136,7 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 }
 .calendar-list__loc { font-style: italic; }
 .calendar-list__image {
-  max-width: 100%;
+  max-width: 50vw;
   height: auto;
   border-radius: var(--radius-lg);
   margin: 0.5rem 0;
@@ -1446,12 +1446,12 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 }
 .cal-ev:hover { background: var(--bg-soft); }
 .cal-ev--featured { border-left-color: var(--brand-primary); }
-.cal-ev__time { display: block; font-weight: 700; color: var(--brand-primary); }
+.cal-ev__time { display: block; font-weight: 700; color: var(--brand-primary); white-space: nowrap; }
 .cal-ev__title {
   display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .cal-more {
   display: inline-block;
@@ -1471,8 +1471,6 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
   .cal-week { --cal-num-h: 1.35rem; --cal-bar-h: 1.2rem; }
   .cal-cell { min-height: 74px; padding-inline: 0.2rem; }
   .cal-bar, .cal-ev { font-size: 0.66rem; }
-  .cal-ev__time { display: inline; }       /* time + title flow together to save height */
-  .cal-ev__title { display: inline; }
   .cal-weekday__full { display: none; }
   .cal-weekday__short { display: inline; }
 }

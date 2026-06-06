@@ -13,7 +13,7 @@ $subscribe = $subscribe ?? ['google' => '', 'webcal' => ''];
 ?>
 <div class="cal-toolbar">
   <nav class="cal-views" aria-label="Calendar views">
-    <a class="cal-views__btn<?= $cal_view === 'month' || $cal_view === 'day' ? ' is-active' : '' ?>" href="/calendar">Month</a>
+    <a class="cal-views__btn<?= $cal_view === 'month' || $cal_view === 'day' ? ' is-active' : '' ?>" href="/calendar?view=month">Month</a>
     <a class="cal-views__btn<?= $cal_view === 'list' ? ' is-active' : '' ?>" href="/calendar/list">List</a>
   </nav>
   <?php if (!empty($subscribe['google'])): ?>

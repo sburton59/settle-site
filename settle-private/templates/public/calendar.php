@@ -25,6 +25,20 @@
 $cal_weeks = $cal_weeks ?? [];
 $weekdays  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 ?>
+<?php /* On phones, default to the list view (the month grid is cramped on a
+         narrow screen). Progressive enhancement only: with JS off the grid
+         still renders. An explicit "Month" tap carries ?view=month, which
+         suppresses the redirect so a phone user can still force the grid. */ ?>
+<script>
+(function () {
+  try {
+    if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches
+        && location.search.indexOf('view=month') === -1) {
+      location.replace('/calendar/list');
+    }
+  } catch (e) {}
+})();
+</script>
 <section class="page-intro">
   <div class="container">
     <div class="eyebrow">What's Happening</div>
@@ -96,7 +110,7 @@ $weekdays  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     ?>
                       <li>
                         <a class="cal-ev<?= $ef ? ' cal-ev--featured' : '' ?>" href="/calendar/day/<?= $e($day['date']) ?>">
-                          <span class="cal-ev__time"><?= $e(\Settle\CalendarFormat::shortStart($ev)) ?></span>
+                          <span class="cal-ev__time"><?= $e(\Settle\CalendarFormat::clockRange($ev)) ?></span>
                           <span class="cal-ev__title"><?= $e($ev['title']) ?></span>
                         </a>
                       </li>
