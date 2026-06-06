@@ -150,6 +150,7 @@ if (Features::enabled('media')) {
     $router->post('/admin/media',                    [MediaController::class, 'upload'],           ['auth' => true]);
     $router->get ('/admin/media/picker',              [MediaController::class, 'picker'],           ['auth' => true]);
     $router->post('/admin/media/upload-from-editor', [MediaController::class, 'uploadFromEditor'], ['auth' => true]);
+    $router->post('/admin/media/upload-ajax',        [MediaController::class, 'uploadAjax'],        ['auth' => true]);
     $router->get ('/admin/media/{id}/edit',           [MediaController::class, 'edit'],             ['auth' => true]);
     $router->post('/admin/media/{id}',                [MediaController::class, 'update'],           ['auth' => true]);
     $router->post('/admin/media/{id}/delete',         [MediaController::class, 'destroy'],          ['auth' => true]);

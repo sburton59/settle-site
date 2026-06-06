@@ -100,7 +100,14 @@ final class MediaController extends BaseController
         }
 
         Media::delete($id);
-        Upload::deleteFile($media['filename'], $this->uploadRoot());
+        $root = $this->uploadRoot();
+        Upload::deleteFile($media['filename'], $root);
+        // Remove the distinct thumbnail file too (skip when it just reuses the
+        // original, i.e. thumbnail_filename === filename, or is absent).
+        $thumb = (string)($media['thumbnail_filename'] ?? '');
+        if ($thumb !== '' && $thumb !== (string)$media['filename']) {
+            Upload::deleteFile($thumb, $root);
+        }
         $this->flash('success', 'File deleted.');
         $this->redirect('/admin/media');
     }
@@ -145,6 +152,52 @@ final class MediaController extends BaseController
         Media::create($result['data'], (int)$_SESSION['user_id']);
         echo json_encode([
             'location' => '/uploads/' . $result['data']['filename'],
+        ]);
+    }
+
+    /**
+     * Drag-and-drop / multi-file upload endpoint (roadmap #9). The admin
+     * media uploader posts ONE file per request here (so a single bad file
+     * doesn't sink the batch and each shows its own progress), with the CSRF
+     * token in the X-CSRF-Token header (router-verified). Returns JSON.
+     *
+     * Success: { "ok": true, "id": N, "name": "...", "url": "/uploads/...",
+     *            "thumbUrl": "/uploads/..." }
+     * Failure: { "ok": false, "error": "..." }  (with a 4xx status)
+     *
+     * Authorization matches the standard form upload: any authenticated user
+     * (author or higher) may add to the library, exactly as upload() allows.
+     */
+    public function uploadAjax(): void
+    {
+        header('Content-Type: application/json');
+
+        $file = $_FILES['file'] ?? null;
+        if (!is_array($file)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'No file received.']);
+            return;
+        }
+
+        $result = Upload::handle($file, $this->uploadRoot());
+        if (!$result['ok']) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => $result['error']]);
+            return;
+        }
+
+        $id   = Media::create($result['data'], (int)$_SESSION['user_id']);
+        $full = '/uploads/' . ltrim((string)$result['data']['filename'], '/');
+        $thumb = !empty($result['data']['thumbnail_filename'])
+            ? '/uploads/' . ltrim((string)$result['data']['thumbnail_filename'], '/')
+            : $full;
+
+        echo json_encode([
+            'ok'       => true,
+            'id'       => $id,
+            'name'     => $result['data']['original_name'],
+            'url'      => $full,
+            'thumbUrl' => $thumb,
         ]);
     }
 

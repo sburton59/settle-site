@@ -76,7 +76,12 @@
             <?php
                 $isImage = strpos((string)$m['mime_type'], 'image/') === 0;
                 if (!$isImage) continue;
-                $url  = '/uploads/' . htmlspecialchars($m['filename'], ENT_QUOTES);
+                // data-url is what gets INSERTED into the post — always the
+                // full-size image. The preview <img> uses the thumbnail when
+                // available (falling back to full-size) to keep the grid light.
+                $url      = '/uploads/' . htmlspecialchars(ltrim((string)$m['filename'], '/'), ENT_QUOTES);
+                $thumbRel = !empty($m['thumbnail_filename']) ? $m['thumbnail_filename'] : $m['filename'];
+                $thumbUrl = '/uploads/' . htmlspecialchars(ltrim((string)$thumbRel, '/'), ENT_QUOTES);
                 $alt  = htmlspecialchars($m['alt_text'] ?? '', ENT_QUOTES);
                 $name = htmlspecialchars($m['original_name'], ENT_QUOTES);
             ?>
@@ -86,7 +91,7 @@
                  data-alt="<?= $alt ?>"
                  title="<?= $name ?>">
                 <div class="thumb">
-                    <img src="<?= $url ?>" alt="<?= $alt ?>" loading="lazy">
+                    <img src="<?= $thumbUrl ?>" alt="<?= $alt ?>" loading="lazy">
                 </div>
                 <div class="label"><?= $name ?></div>
             </div>

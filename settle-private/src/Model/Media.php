@@ -40,21 +40,22 @@ final class Media
     {
         Database::query(
             'INSERT INTO media
-                (filename, original_name, mime_type, file_size, width, height,
-                 alt_text, caption, uploaded_by)
+                (filename, thumbnail_filename, original_name, mime_type, file_size,
+                 width, height, alt_text, caption, uploaded_by)
              VALUES
-                (:filename, :original_name, :mime_type, :file_size, :width, :height,
-                 :alt_text, :caption, :uid)',
+                (:filename, :thumbnail_filename, :original_name, :mime_type, :file_size,
+                 :width, :height, :alt_text, :caption, :uid)',
             [
-                ':filename'      => $data['filename'],
-                ':original_name' => $data['original_name'],
-                ':mime_type'     => $data['mime_type'],
-                ':file_size'     => $data['file_size'],
-                ':width'         => $data['width'],
-                ':height'        => $data['height'],
-                ':alt_text'      => $data['alt_text'],
-                ':caption'       => $data['caption'],
-                ':uid'           => $userId,
+                ':filename'           => $data['filename'],
+                ':thumbnail_filename' => $data['thumbnail_filename'] ?? null,
+                ':original_name'      => $data['original_name'],
+                ':mime_type'          => $data['mime_type'],
+                ':file_size'          => $data['file_size'],
+                ':width'              => $data['width'],
+                ':height'             => $data['height'],
+                ':alt_text'           => $data['alt_text'],
+                ':caption'            => $data['caption'],
+                ':uid'                => $userId,
             ]
         );
         return (int)Database::pdo()->lastInsertId();
@@ -75,5 +76,34 @@ final class Media
     public static function delete(int $id): void
     {
         Database::query('DELETE FROM media WHERE id = :id', [':id' => $id]);
+    }
+
+    /**
+     * Image rows that have no thumbnail yet (roadmap #9 backfill). PDFs and
+     * any non-image rows are excluded — they never get a thumbnail. Used only
+     * by bin/thumbnail-backfill.php.
+     *
+     * @return array<int, array{id:int, filename:string}>
+     */
+    public static function imagesWithoutThumbnail(): array
+    {
+        return Database::query(
+            "SELECT id, filename
+             FROM media
+             WHERE thumbnail_filename IS NULL
+               AND mime_type LIKE 'image/%'
+             ORDER BY id ASC"
+        )->fetchAll();
+    }
+
+    /**
+     * Record a generated thumbnail path against a media row (#9 backfill).
+     */
+    public static function setThumbnail(int $id, string $thumbnailFilename): void
+    {
+        Database::query(
+            'UPDATE media SET thumbnail_filename = :thumb WHERE id = :id',
+            [':thumb' => $thumbnailFilename, ':id' => $id]
+        );
     }
 }

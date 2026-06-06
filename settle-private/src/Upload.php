@@ -6,7 +6,8 @@ namespace Settle;
  * Upload — file upload handling for the Media Library.
  *
  * Validates incoming uploads, sanitizes filenames, resizes large images,
- * and writes the result to public_html/Settle/uploads/YYYY/MM/.
+ * generates a small thumbnail variant, and writes the result to
+ * public_html/Settle/uploads/YYYY/MM/.
  *
  * The class is stateless; everything goes through the static handle() method
  * which returns either a fully-populated metadata array ready for the DB,
@@ -20,6 +21,14 @@ final class Upload
     /** Long edge in pixels — anything larger gets resized down on upload. */
     private const MAX_DIMENSION = 2000;
 
+    /**
+     * Long edge in pixels for the generated thumbnail variant (roadmap #9).
+     * Used by the admin grid, the editor image picker, and public blog cards.
+     * Chosen to stay crisp on 2x/retina card displays while being ~an order of
+     * magnitude smaller than the 2000px full-size image.
+     */
+    private const THUMB_DIMENSION = 600;
+
     /** JPEG quality used when re-saving resized images. */
     private const JPEG_QUALITY = 85;
 
@@ -28,6 +37,9 @@ final class Upload
 
     /** WebP quality. */
     private const WEBP_QUALITY = 85;
+
+    /** Raster image MIME types we can decode/encode with GD. */
+    private const RASTER_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
     /**
      * MIME type => extension. Both are checked: the browser-supplied MIME,
@@ -49,8 +61,8 @@ final class Upload
      * @return array{ok:true, data:array}|array{ok:false, error:string}
      *
      * The `data` array on success is shaped for direct insertion into the
-     * `media` table — filename, original_name, mime_type, width, height,
-     * file_size, alt_text (empty default), caption (empty default).
+     * `media` table — filename, thumbnail_filename, original_name, mime_type,
+     * width, height, file_size, alt_text (empty default), caption (empty default).
      */
     public static function handle(array $file, string $uploadRoot): array
     {
@@ -110,9 +122,11 @@ final class Upload
             return ['ok' => false, 'error' => 'Could not save uploaded file.'];
         }
 
-        // 7. For images, optionally resize. For PDF, just record what we have.
+        // 7. For images, optionally resize, then generate a thumbnail variant.
+        //    For PDF, just record what we have (no dimensions, no thumbnail).
         $width = null;
         $height = null;
+        $thumbnail = null;
         if ($detectedMime !== 'application/pdf') {
             $resized = self::maybeResize($destPath, $detectedMime);
             if (!$resized['ok']) {
@@ -123,19 +137,24 @@ final class Upload
             $height = $resized['height'];
             // The file may have been re-saved (changing size); re-stat it.
             $size = (int)filesize($destPath);
+            // Thumbnail generation is best-effort: a failure leaves thumbnail
+            // NULL and every consumer falls back to the full-size image rather
+            // than rendering a broken <img>. Never fail the upload over it.
+            $thumbnail = self::makeThumbnail($relativePath, $uploadRoot);
         }
 
         return [
             'ok' => true,
             'data' => [
-                'filename'      => $relativePath,
-                'original_name' => self::sanitizeOriginalName((string)$file['name']),
-                'mime_type'     => $detectedMime,
-                'file_size'     => $size,
-                'width'         => $width,
-                'height'        => $height,
-                'alt_text'      => null,
-                'caption'       => null,
+                'filename'           => $relativePath,
+                'thumbnail_filename' => $thumbnail,
+                'original_name'      => self::sanitizeOriginalName((string)$file['name']),
+                'mime_type'          => $detectedMime,
+                'file_size'          => $size,
+                'width'              => $width,
+                'height'             => $height,
+                'alt_text'           => null,
+                'caption'            => null,
             ],
         ];
     }
@@ -147,8 +166,96 @@ final class Upload
      */
     public static function deleteFile(string $relativePath, string $uploadRoot): void
     {
+        $relativePath = ltrim($relativePath, '/');
+        if ($relativePath === '') return;
         $path = "$uploadRoot/$relativePath";
         if (is_file($path)) @unlink($path);
+    }
+
+    /**
+     * Generate (or reuse) a thumbnail for an already-stored image and return
+     * its relative path, or NULL if one could not be produced.
+     *
+     * Shared by handle() (on upload) and bin/thumbnail-backfill.php (for
+     * pre-#9 images), so the generation rules live in exactly one place.
+     *
+     * Behavior:
+     *   - Non-image / unreadable / PDF  → NULL (caller stores NULL; consumers
+     *     fall back to the full-size file).
+     *   - Source long edge <= THUMB_DIMENSION → returns the ORIGINAL relative
+     *     path unchanged (it is already small enough to serve as its own
+     *     thumbnail; no second file is written).
+     *   - Otherwise writes <base>_thumb.<ext> next to the original and returns
+     *     that relative path. Transparency is preserved for PNG/GIF/WebP.
+     *
+     * Note: animated GIFs are reduced to their first frame by GD — acceptable
+     * for a preview thumbnail; the full-size animated GIF is untouched.
+     */
+    public static function makeThumbnail(string $relativePath, string $uploadRoot): ?string
+    {
+        $relativePath = ltrim($relativePath, '/');
+        $srcPath = "$uploadRoot/$relativePath";
+        if (!is_file($srcPath)) {
+            return null;
+        }
+
+        $info = @getimagesize($srcPath);
+        if (!$info) {
+            return null;
+        }
+        [$origW, $origH] = $info;
+        $mime = (string)($info['mime'] ?? '');
+        if (!in_array($mime, self::RASTER_TYPES, true)) {
+            return null;
+        }
+
+        $long = max($origW, $origH);
+        if ($long <= self::THUMB_DIMENSION) {
+            // Already thumbnail-sized: reuse the original as its own thumbnail.
+            return $relativePath;
+        }
+
+        $scale = self::THUMB_DIMENSION / $long;
+        $newW  = max(1, (int)round($origW * $scale));
+        $newH  = max(1, (int)round($origH * $scale));
+
+        $src = self::loadImage($srcPath, $mime);
+        if (!$src) {
+            return null;
+        }
+        $dst = imagecreatetruecolor($newW, $newH);
+
+        // Preserve transparency for PNG/GIF/WebP.
+        if (in_array($mime, ['image/png', 'image/gif', 'image/webp'], true)) {
+            imagealphablending($dst, false);
+            imagesavealpha($dst, true);
+            $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+            imagefilledrectangle($dst, 0, 0, $newW, $newH, $transparent);
+        }
+
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+
+        $thumbRel  = self::thumbPath($relativePath);
+        $thumbPath = "$uploadRoot/$thumbRel";
+        $saved = self::saveImage($dst, $thumbPath, $mime);
+        imagedestroy($src);
+        imagedestroy($dst);
+
+        return $saved ? $thumbRel : null;
+    }
+
+    /**
+     * Insert "_thumb" before the extension of a relative path:
+     *   2026/06/abcd.jpg  ->  2026/06/abcd_thumb.jpg
+     */
+    public static function thumbPath(string $relativePath): string
+    {
+        $ext = pathinfo($relativePath, PATHINFO_EXTENSION);
+        if ($ext === '') {
+            return $relativePath . '_thumb';
+        }
+        $base = substr($relativePath, 0, -(strlen($ext) + 1));
+        return $base . '_thumb.' . $ext;
     }
 
     /**

@@ -77,7 +77,11 @@ $activeSlug = $category['slug'] ?? null;
         <?php foreach ($posts as $p): ?>
           <?php
             $url  = '/blog/' . rawurlencode((string) $p['slug']);
-            $img  = !empty($p['featured_filename']) ? '/uploads/' . ltrim((string) $p['featured_filename'], '/') : '';
+            // Prefer the thumbnail variant for the card background; fall back to
+            // the full-size featured image when there isn't one (#9).
+            $imgRel = !empty($p['featured_thumbnail']) ? $p['featured_thumbnail']
+                    : ($p['featured_filename'] ?? '');
+            $img  = !empty($imgRel) ? '/uploads/' . ltrim((string) $imgRel, '/') : '';
             $when = $p['published_at'] ?? '';
             if ($when === '' || $when === null) { $when = $p['created_at'] ?? ''; }
             $date = $when ? date('M j, Y', strtotime((string) $when)) : '';

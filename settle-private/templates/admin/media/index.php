@@ -9,7 +9,19 @@
     <span class="muted"><?= (int)$total ?> file<?= $total === 1 ? '' : 's' ?></span>
 </div>
 
-<form method="post" action="/admin/media" enctype="multipart/form-data"
+<?php
+/*
+ * Two upload surfaces, progressively enhanced:
+ *   - #media-simple-form : a plain single-file POST to /admin/media. Always
+ *     present; the only thing that works with JavaScript disabled.
+ *   - #media-uploader    : a drag-and-drop / multi-file uploader, hidden by
+ *     default and revealed by admin.js, which posts one file at a time to
+ *     /admin/media/upload-ajax. When admin.js initializes it hides the simple
+ *     form and shows this. The CSRF token is read from the simple form's
+ *     hidden _csrf field and sent as an X-CSRF-Token header per request.
+ */
+?>
+<form id="media-simple-form" method="post" action="/admin/media" enctype="multipart/form-data"
       style="background:#fff; padding:1em 1.2em; border-radius:4px;
              box-shadow:0 1px 3px rgba(0,0,0,0.05); margin-bottom:1.5em;">
     <?= \Settle\Csrf::field() ?>
@@ -26,6 +38,19 @@
     </div>
 </form>
 
+<div id="media-uploader" class="uploader" data-upload-url="/admin/media/upload-ajax"
+     data-accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" hidden>
+    <label class="uploader__drop" for="media-uploader__input">
+        <strong>Drag &amp; drop files here</strong>
+        <span class="muted">or click to choose &mdash; you can select several at once</span>
+        <span class="muted" style="font-size:0.9em;">JPEG, PNG, GIF, WebP, or PDF &middot; up to 10&nbsp;MB each</span>
+        <input id="media-uploader__input" type="file" multiple
+               accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+               style="position:absolute; width:1px; height:1px; opacity:0; overflow:hidden;">
+    </label>
+    <ul class="uploader__list" id="media-uploader__list" aria-live="polite"></ul>
+</div>
+
 <?php if (empty($items)): ?>
     <div style="background:#fff; padding:2em; text-align:center; border-radius:4px;">
         <p class="muted">No files yet. Upload your first one above.</p>
@@ -36,7 +61,10 @@
             <?php
                 $isImage = strpos((string)$m['mime_type'], 'image/') === 0;
                 $isPdf   = $m['mime_type'] === 'application/pdf';
-                $url     = '/uploads/' . htmlspecialchars($m['filename'], ENT_QUOTES);
+                // Prefer the thumbnail variant for the grid; fall back to the
+                // full-size file when there isn't one (PDFs, legacy rows).
+                $thumbRel = !empty($m['thumbnail_filename']) ? $m['thumbnail_filename'] : $m['filename'];
+                $thumbUrl = '/uploads/' . htmlspecialchars(ltrim((string)$thumbRel, '/'), ENT_QUOTES);
             ?>
             <div style="background:#fff; border-radius:4px; overflow:hidden;
                         box-shadow:0 1px 3px rgba(0,0,0,0.05); display:flex; flex-direction:column;">
@@ -45,7 +73,7 @@
                           display:flex; align-items:center; justify-content:center;
                           overflow:hidden;">
                     <?php if ($isImage): ?>
-                        <img src="<?= $url ?>"
+                        <img src="<?= $thumbUrl ?>"
                              alt="<?= htmlspecialchars($m['alt_text'] ?? '', ENT_QUOTES) ?>"
                              loading="lazy"
                              style="width:100%; height:100%; object-fit:cover;">

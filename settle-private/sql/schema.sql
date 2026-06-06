@@ -31,6 +31,7 @@ CREATE TABLE users (
 CREATE TABLE media (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     filename VARCHAR(255) NOT NULL,
+    thumbnail_filename VARCHAR(255) NULL,
     original_name VARCHAR(255) NOT NULL,
     mime_type VARCHAR(100) NOT NULL,
     file_size INT UNSIGNED NOT NULL,

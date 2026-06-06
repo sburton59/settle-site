@@ -149,9 +149,10 @@ final class Post
         $offset = max(0, $offset);
         return Database::query(
             'SELECT p.*,
-                    u.display_name AS author_name,
-                    m.filename     AS featured_filename,
-                    m.alt_text     AS featured_alt
+                    u.display_name      AS author_name,
+                    m.filename          AS featured_filename,
+                    m.thumbnail_filename AS featured_thumbnail,
+                    m.alt_text          AS featured_alt
              FROM posts p
              LEFT JOIN users u ON u.id = p.author_id
              LEFT JOIN media m ON m.id = p.featured_media_id
@@ -249,9 +250,10 @@ final class Post
         $offset = max(0, $offset);
         return Database::query(
             'SELECT p.*,
-                    u.display_name AS author_name,
-                    m.filename     AS featured_filename,
-                    m.alt_text     AS featured_alt
+                    u.display_name      AS author_name,
+                    m.filename          AS featured_filename,
+                    m.thumbnail_filename AS featured_thumbnail,
+                    m.alt_text          AS featured_alt
              FROM posts p
              JOIN post_categories pc ON pc.post_id = p.id AND pc.category_id = :cid
              LEFT JOIN users u ON u.id = p.author_id
