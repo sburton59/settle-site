@@ -173,6 +173,75 @@ final class Post
         )->fetchColumn();
     }
 
+    /**
+     * Compact summary for the admin dashboard (roadmap #8b): post counts by
+     * effective state plus a short recent list. Editors see all posts;
+     * authors see only their own (mirrors allForAdmin()'s scoping). State
+     * follows the blog's scheduling model — "Scheduled" = published status
+     * with a future (or not-yet-stamped) published_at; "Published" =
+     * published_at <= now. Time is PHP-bound (:now / self::now(), §13.8).
+     *
+     * @return array{counts: array{published:int,scheduled:int,draft:int}, recent: array<int,array<string,mixed>>}
+     */
+    public static function dashboardSummary(int $viewerId, bool $isEditor, int $recentLimit = 5): array
+    {
+        $now    = self::now();
+        $where  = $isEditor ? '' : ' WHERE author_id = :vid';
+        $params = $isEditor ? [] : [':vid' => $viewerId];
+
+        $row = Database::query(
+            'SELECT
+                SUM(CASE WHEN status = :pub  AND published_at IS NOT NULL AND published_at <= :now  THEN 1 ELSE 0 END) AS published,
+                SUM(CASE WHEN status = :pub2 AND (published_at IS NULL OR published_at > :now2)      THEN 1 ELSE 0 END) AS scheduled,
+                SUM(CASE WHEN status = :draft THEN 1 ELSE 0 END) AS draft
+             FROM posts' . $where,
+            $params + [':pub' => 'published', ':now' => $now, ':pub2' => 'published', ':now2' => $now, ':draft' => 'draft']
+        )->fetch();
+
+        $counts = [
+            'published' => (int) ($row['published'] ?? 0),
+            'scheduled' => (int) ($row['scheduled'] ?? 0),
+            'draft'     => (int) ($row['draft'] ?? 0),
+        ];
+
+        $recentLimit = max(1, min(20, $recentLimit));
+        $rows = Database::query(
+            'SELECT p.id, p.title, p.status, p.published_at, p.created_at,
+                    u.display_name AS author_name
+             FROM posts p
+             LEFT JOIN users u ON u.id = p.author_id'
+             . $where .
+            ' ORDER BY p.created_at DESC
+              LIMIT ' . (int) $recentLimit,
+            $params
+        )->fetchAll();
+
+        $recent = [];
+        foreach ($rows as $r) {
+            $status = (string) $r['status'];
+            $pubAt  = $r['published_at'] ?? null;
+            if ($status === 'published') {
+                $state = ($pubAt !== null && $pubAt <= $now) ? 'Published' : 'Scheduled';
+                $when  = $pubAt ?? $r['created_at'];
+            } elseif ($status === 'archived') {
+                $state = 'Archived';
+                $when  = $r['created_at'];
+            } else {
+                $state = 'Draft';
+                $when  = $r['created_at'];
+            }
+            $recent[] = [
+                'id'          => (int) $r['id'],
+                'title'       => (string) $r['title'],
+                'state'       => $state,
+                'when'        => (string) $when,
+                'author_name' => (string) ($r['author_name'] ?? ''),
+            ];
+        }
+
+        return ['counts' => $counts, 'recent' => $recent];
+    }
+
     /** Public listing filtered to one category (live, published posts only). */
     public static function publishedListByCategory(int $categoryId, int $limit, int $offset = 0): array
     {
