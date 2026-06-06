@@ -5,6 +5,7 @@ namespace Settle\Controller;
 use Settle\Auth;
 use Settle\AuditLog;
 use Settle\Mailer;
+use Settle\RateLimiter;
 use Settle\Settings;
 use Settle\Model\User;
 
@@ -56,6 +57,17 @@ final class PasswordResetController extends BaseController
     /** Minimum new-password length — mirrors the rule set in #5. */
     private const MIN_PASSWORD_LENGTH = 12;
 
+    /**
+     * IP-scoped cap on /admin/forgot submissions (roadmap #8). This is a
+     * coarse anti-hammering measure on the endpoint itself; it is keyed on
+     * the IP only (not the account), so it can't be used to enumerate or to
+     * lock a specific account out of resets. The per-ACCOUNT re-issue guard
+     * in maybeIssueToken() is a separate, complementary control (it caps
+     * live links per account across all IPs) and is intentionally retained.
+     */
+    private const FORGOT_MAX_REQUESTS  = 10;
+    private const FORGOT_WINDOW_SECONDS = 900;
+
     /** Identical outcome message regardless of whether the account exists. */
     private const GENERIC_SENT_MESSAGE =
         'If that account exists, a password-reset link is on its way. '
@@ -84,6 +96,19 @@ final class PasswordResetController extends BaseController
     public function doForgot(): void
     {
         if (Auth::check()) { $this->redirect('/admin'); return; }
+
+        // Coarse IP-scoped cap on the endpoint itself (roadmap #8). When
+        // tripped, return the SAME generic notice as a normal submit — the
+        // throttle state must be indistinguishable from "request accepted",
+        // or it would leak that this IP had been probing the form.
+        $ip    = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+        $rlKey = RateLimiter::key($ip, 'forgot'); // IP-only namespace, not per-account
+        if (RateLimiter::tooMany($rlKey, self::FORGOT_MAX_REQUESTS, self::FORGOT_WINDOW_SECONDS)) {
+            $this->flash('reset_notice', self::GENERIC_SENT_MESSAGE);
+            $this->redirect('/admin/forgot');
+            return;
+        }
+        RateLimiter::hit($rlKey, self::FORGOT_WINDOW_SECONDS);
 
         $identifier = trim((string)$this->input('identifier', ''));
 

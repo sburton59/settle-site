@@ -262,6 +262,22 @@ CREATE TABLE audit_log (
     CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 12b. LOGIN ATTEMPTS
+-- Backs the login throttle + password-reset request cap (roadmap #8,
+-- \Settle\RateLimiter). Timestamped attempt rows under an opaque key
+-- (sha256 of ip|lower(identifier)); the limiter counts rows in a rolling
+-- window and prunes old ones opportunistically. NO foreign key on purpose:
+-- attempts are recorded pre-auth and may name a user that doesn't exist,
+-- and the identifier is hashed into attempt_key rather than stored raw.
+CREATE TABLE login_attempts (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    attempt_key CHAR(64) NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_login_attempts_key_time (attempt_key, created_at),
+    KEY idx_login_attempts_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 13. MENU ITEMS
 -- Data-driven public navigation (roadmap #1.5; see PROJECT_HANDOFF.md §14.5).
 -- Flat list with parent_id for one level of nesting. Core provides the
