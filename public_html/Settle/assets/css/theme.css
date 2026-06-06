@@ -1136,7 +1136,7 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 }
 .calendar-list__loc { font-style: italic; }
 .calendar-list__image {
-  max-width: 50vw;
+  max-width: 25vw;
   height: auto;
   border-radius: var(--radius-lg);
   margin: 0.5rem 0;
