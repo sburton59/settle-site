@@ -27,6 +27,7 @@ use Settle\Controller\DashboardController;
 use Settle\Controller\MediaController;
 use Settle\Controller\MenuController;
 use Settle\Controller\PagesController;
+use Settle\Controller\PasswordResetController;
 use Settle\Controller\PostController;
 use Settle\Controller\PrayerRequestController;
 use Settle\Controller\PublicController;
@@ -48,6 +49,12 @@ $router->get('/', [PublicController::class, 'home']);
 $router->get ('/admin/login',  [AuthController::class, 'showLogin']);
 $router->post('/admin/login',  [AuthController::class, 'doLogin']);
 $router->post('/admin/logout', [AuthController::class, 'logout']);
+
+// Self-service password reset (always-on, like login — not feature-gated)
+$router->get ('/admin/forgot', [PasswordResetController::class, 'showForgot']);
+$router->post('/admin/forgot', [PasswordResetController::class, 'doForgot']);
+$router->get ('/admin/reset',  [PasswordResetController::class, 'showReset']);
+$router->post('/admin/reset',  [PasswordResetController::class, 'doReset']);
 
 // Admin dashboard
 $router->get('/admin', [DashboardController::class, 'index'], ['auth' => true]);

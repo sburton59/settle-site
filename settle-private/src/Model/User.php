@@ -14,6 +14,10 @@ use Settle\Database;
  * counters that back the "don't lock the church out" guards in
  * UserController. isActive() backs the per-request recheck in Auth::check()
  * so deactivating a signed-in user revokes access on their next request.
+ *
+ * The "Self-service password reset" block (roadmap #6b) backs
+ * PasswordResetController: an active-only lookup, hashed-token storage,
+ * a token-hash + expiry validator, and a single-use clear.
  */
 final class User
 {
@@ -60,6 +64,77 @@ final class User
             [':id' => $id]
         )->fetch();
         return $row !== false && (int)$row['is_active'] === 1;
+    }
+
+    // -----------------------------------------------------------------
+    // Self-service password reset (roadmap #6b)
+    // -----------------------------------------------------------------
+
+    /**
+     * Look up an ACTIVE account by username or email. Inactive rows never
+     * match (mirrors Auth::attempt's is_active gate) so a deactivated user
+     * can't initiate a reset. Returns the full row (incl. the existing
+     * reset token/expiry, so the caller can apply its "don't re-issue a
+     * live token" guard) or null.
+     */
+    public static function findActiveByUsernameOrEmail(string $value): ?array
+    {
+        $row = Database::query(
+            'SELECT * FROM users
+               WHERE (username = :u OR email = :e) AND is_active = 1
+               LIMIT 1',
+            [':u' => $value, ':e' => $value]
+        )->fetch();
+        return $row ?: null;
+    }
+
+    /**
+     * Store the reset token HASH (sha256 hex, CHAR(64)) and its absolute
+     * expiry. The raw token is emailed; only its hash is persisted, so a
+     * DB leak can't be replayed.
+     */
+    public static function setResetToken(int $id, string $tokenHash, string $expiresAt): void
+    {
+        Database::query(
+            'UPDATE users
+                SET password_reset_token = :t,
+                    password_reset_expires = :e
+              WHERE id = :id',
+            [':t' => $tokenHash, ':e' => $expiresAt, ':id' => $id]
+        );
+    }
+
+    /**
+     * Resolve a token hash to its ACTIVE, UNEXPIRED user row, or null.
+     * The expiry is compared against a PHP-bound :now (app timezone), not
+     * SQL NOW() — see PROJECT_HANDOFF.md §13.8. The lookup is an indexed
+     * equality on the sha256 of a 256-bit random token, so there is no
+     * useful timing side-channel to defend against.
+     */
+    public static function findByValidResetToken(string $tokenHash, string $now): ?array
+    {
+        $row = Database::query(
+            'SELECT * FROM users
+               WHERE password_reset_token = :t
+                 AND password_reset_expires IS NOT NULL
+                 AND password_reset_expires > :now
+                 AND is_active = 1
+               LIMIT 1',
+            [':t' => $tokenHash, ':now' => $now]
+        )->fetch();
+        return $row ?: null;
+    }
+
+    /** Clear the reset token + expiry (single-use: called right after a successful reset). */
+    public static function clearResetToken(int $id): void
+    {
+        Database::query(
+            'UPDATE users
+                SET password_reset_token = NULL,
+                    password_reset_expires = NULL
+              WHERE id = :id',
+            [':id' => $id]
+        );
     }
 
     // -----------------------------------------------------------------

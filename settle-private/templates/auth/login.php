@@ -29,4 +29,6 @@
 
     <button type="submit" class="btn-primary">Sign In</button>
   </form>
+
+  <p class="muted"><a href="/admin/forgot">Forgot your password?</a></p>
 </div>
