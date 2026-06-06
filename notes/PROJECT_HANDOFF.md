@@ -1,11 +1,12 @@
 # **Settle Memorial UMC Website Modernization — Project Handoff**
 
-**Document version:** 2.9 **Date prepared:** June 6, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
+**Document version:** 3.0 **Date prepared:** June 6, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
 
 **Recent changes** (full history in `CHANGELOG.md`):
 
 | Ver | Date | Summary | More |
 | --- | --- | --- | --- |
+| 3.0 | 2026-06-06 | Media thumbnails + multi-image / drag-&-drop upload (#9) | §5, §7, §10 |
 | 2.9 | 2026-06-06 | Dashboard enrichment (#8b): role-aware cards + recent activity + quick actions | §7, §10 |
 | 2.8 | 2026-06-06 | Calendar display (#8a): spanning-bar month grid + list/day views + subscribe; phone-default list, wrapping titles, end-times | §7, §10 |
 | 2.7 | 2026-06-06 | Login rate-limiting (#8) + admin limiter-health banner | §3.5, §7 |
@@ -31,7 +32,7 @@ The new site is built from scratch — no framework, no WordPress, no CMS depend
 
 Current status as of handoff: **Pages CRUD, Media Library, WYSIWYG editor, Homepage Slideshow, Staff Directory, Prayer Requests, Contact Form, public theming, a data-driven menu system, outbound email notifications, Google Calendar integration, the multi-author blog (with categories + scheduled publishing), an admin Settings UI with a Branding section, AND a home-page design pass are all working end-to-end.** A staff member can log in, edit pages, manage images, manage the homepage slideshow, maintain a staff directory, triage prayer requests and contact messages, manage the public navigation, and author blog posts — all through the admin panel; an admin can additionally edit church identity, contact, notification routing, social links, homepage copy, and branding (logo/favicon and brand colors) from `/admin/settings`. New contact and prayer submissions notify staff by email. Church events are managed entirely in Google Calendar and appear automatically on the public site.
 
-**All five contractual proposal features are complete** (standard pages/photo management, homepage slideshow, multi-author blog, Google Calendar integration, secure admin panel), and a run of post-contract features have also shipped: the Settings UI + Branding (#4), the home-page design pass (#4c), the calendar `[hide]` tag + override editor (#4b), user management (#5), self-service password reset (#6b), the audit-log viewer (#7), login rate-limiting (#8), the **calendar display enhancements (#8a — spanning-bar month grid + list/day views + subscribe links)**, and the **dashboard enrichment (#8b — role-aware "Welcome back" page)**. The remaining roadmap is the renovation follow-along (#9.5, time-sensitive), media thumbnails + multi-image upload (#9), content migration + the settleumc.com gap items (#10/#13), site search and a searchable history page (#12/#12b), a user help doc (#14), tests (#11), and a pre-launch checklist. The roadmap is in §10; the full per-version history is in `CHANGELOG.md`.
+**All five contractual proposal features are complete** (standard pages/photo management, homepage slideshow, multi-author blog, Google Calendar integration, secure admin panel), and a run of post-contract features have also shipped: the Settings UI + Branding (#4), the home-page design pass (#4c), the calendar `[hide]` tag + override editor (#4b), user management (#5), self-service password reset (#6b), the audit-log viewer (#7), login rate-limiting (#8), the **calendar display enhancements (#8a — spanning-bar month grid + list/day views + subscribe links)**, and the **dashboard enrichment (#8b — role-aware "Welcome back" page)**, and **media thumbnails + multi-image / drag-&-drop upload (#9)**. The remaining roadmap is the renovation follow-along (#9.5, time-sensitive), content migration + the settleumc.com gap items (#10/#13), site search and a searchable history page (#12/#12b), a user help doc (#14), tests (#11), and a pre-launch checklist. The roadmap is in §10; the full per-version history is in `CHANGELOG.md`.
 
 The site is visually presentable for stakeholder review, email-functional, and calendar-functional. It still runs at `settlemem.org` (and `settleumc.org`) only; `settleumc.com` continues to serve the old WordPress site until DNS cutover at launch.
 
@@ -166,7 +167,7 @@ Seventeen tables in MySQL 8 / MariaDB 10.5+, InnoDB, utf8mb4. Full DDL is in `se
 | Table | Purpose |
 | ----- | ----- |
 | `users` | Admin/editor/author logins |
-| `media` | Uploaded photos (file metadata + alt text) |
+| `media` | Uploaded photos (file metadata + alt text; `thumbnail_filename` added v3.0) |
 | `pages` | Static informational pages |
 | `posts` | Multi-author blog entries (**in use as of v2.0**) |
 | `post_media` | Junction for inline post images (**reserved; unused — inline images live in `body_html`**) |
@@ -185,7 +186,7 @@ Seventeen tables in MySQL 8 / MariaDB 10.5+, InnoDB, utf8mb4. Full DDL is in `se
 
 Foreign keys are enforced. `ON DELETE` policies: RESTRICT for owned content (e.g. `posts.author_id` → `users`), SET NULL for optional images (e.g. `posts.featured_media_id` → `media`), CASCADE for menu children and post-media junctions.
 
-Schema migrations live in `settle-private/sql/migrations/`. Three migrations to date: `0001_add_menu_items.sql`, `0002_add_post_categories.sql` (the `categories` and `post_categories` tables for the v2.0 blog), and `0003_add_calendar_hidden.sql` (the `is_hidden` column on `calendar_events_cache` for the v2.3 `[hide]` tag). **v1.9 added no schema migration** — both calendar tables already existed; the new `google_calendar` config block is config, not schema. Fresh installs run `schema.sql`; existing databases run migrations in order.
+Schema migrations live in `settle-private/sql/migrations/`. Five migrations to date: `0001_add_menu_items.sql`, `0002_add_post_categories.sql` (the `categories` and `post_categories` tables for the v2.0 blog), `0003_add_calendar_hidden.sql` (the `is_hidden` column on `calendar_events_cache` for the v2.3 `[hide]` tag), `0004_add_login_attempts.sql` (the v2.7 login-throttle table), and `0005_add_media_thumbnail.sql` (the `thumbnail_filename` column on `media` for the v3.0 thumbnail variant). **v1.9 added no schema migration** — both calendar tables already existed; the new `google_calendar` config block is config, not schema. Fresh installs run `schema.sql`; existing databases run migrations in order.
 
 `posts` columns of note: `id, slug` (unique), `title, excerpt` (nullable), `body_html` (trusted), `featured_media_id` (→ `media`, SET NULL), `author_id` (→ `users`, RESTRICT), `status` (enum `draft`/`published`/`archived`), `published_at` (nullable; a future value = a scheduled post — there is no separate `scheduled` status), `created_at`, `updated_at`. There is no `updated_by` column on `posts`. `categories`: `id, slug` (unique), `name, sort_order, timestamps`. `post_categories`: `(post_id, category_id)` composite PK, CASCADE both ways.
 
@@ -217,7 +218,7 @@ settle-private/                        ← Outside web root; not URL-accessible
 │   ├── Csrf.php                       ← Token generation and verification
 │   ├── View.php                       ← PHP-as-template renderer with layouts
 │   ├── PublicView.php                 ← Public-side wrapper; injects $settings + $menu_tree
-│   ├── Upload.php                     ← Upload validation, MIME detection, image resizing (GD)
+│   ├── Upload.php                     ← Upload validation, MIME detection, image resizing (GD); thumbnail variant + backfill (v3.0)
 │   ├── EmailObfuscator.php            ← XOR-hex email obfuscation
 │   ├── PhoneFormatter.php             ← US phone formatting helpers
 │   ├── AuditLog.php                   ← Audit-log writer
@@ -233,7 +234,7 @@ settle-private/                        ← Outside web root; not URL-accessible
 │   │   ├── AuthController.php
 │   │   ├── DashboardController.php         ← enriched role-aware dashboard (v2.9, #8b)
 │   │   ├── PagesController.php
-│   │   ├── MediaController.php
+│   │   ├── MediaController.php             ← media CRUD; uploadAjax() multi-upload JSON endpoint (v3.0)
 │   │   ├── SlideshowController.php
 │   │   ├── StaffController.php
 │   │   ├── PrayerRequestController.php
@@ -250,7 +251,7 @@ settle-private/                        ← Outside web root; not URL-accessible
 │   └── Model/
 │       ├── User.php
 │       ├── Page.php
-│       ├── Media.php
+│       ├── Media.php                        ← media model; thumbnail_filename + backfill helpers (v3.0)
 │       ├── Slideshow.php
 │       ├── Staff.php
 │       ├── PrayerRequest.php
@@ -293,7 +294,8 @@ settle-private/                        ← Outside web root; not URL-accessible
 │       └── post.php                       ← single post; staff preview banner (v2.0)
 ├── bin/
 │   ├── mail-test.php                  ← CLI SMTP smoke test (v1.8)
-│   └── calendar-sync.php              ← CLI calendar sync for cron (v1.9)
+│   ├── calendar-sync.php              ← CLI calendar sync for cron (v1.9)
+│   └── thumbnail-backfill.php         ← one-time thumbnail backfill for pre-#9 images (v3.0)
 ├── config/
 │   ├── config.php                     ← DB + mail + google_calendar + features (gitignored)
 │   ├── config.example.php             ← Template (committed; google_calendar block added v1.9)
@@ -311,7 +313,8 @@ settle-private/                        ← Outside web root; not URL-accessible
         ├── 0001_add_menu_items.sql
         ├── 0002_add_post_categories.sql   ← categories + post_categories (v2.0)
         ├── 0003_add_calendar_hidden.sql    ← is_hidden on calendar cache (v2.3)
-        └── 0004_add_login_attempts.sql     ← login throttle table (v2.7)
+        ├── 0004_add_login_attempts.sql     ← login throttle table (v2.7)
+        └── 0005_add_media_thumbnail.sql     ← media thumbnail_filename column (v3.0)
 ```
 
 ---
@@ -338,6 +341,7 @@ settle-private/                        ← Outside web root; not URL-accessible
 * ✅ **Self-service password reset (v2.5)** — public, always-on `/admin/forgot` (request) + `/admin/reset` (set new password). `PasswordResetController` + `templates/auth/{forgot,reset}.php`; four `User` reset methods; a "Forgot your password?" link on the login screen. Hashed single-use token (`sha256(raw)`, 15-min TTL, PHP-bound `:now`), non-enumerating + active-only, link host from `app.base_url`, minimal re-issue guard, audited (`user.password_reset_request`/`_complete`). No schema change (the reset columns already existed).
 * ✅ **Calendar display enhancements (v2.8, #8a)** — month grid rebuilt as week rows with **spanning multi-day/all-day bars** (server-computed lanes in `PublicController::buildMonthWeeks()`, cross-week split, no JS) plus in-cell time+title single-day entries and a per-day **"+N More"** → day view. **`/calendar/list`** (paginated upcoming, 25/page) and **`/calendar/day/{date}`** views; a Month/List toolbar with **subscribe links** (Google + webcal/iCal, auto-hidden if the calendar id is unset). New `\Settle\CalendarFormat` helper (time labels / clean description / subscribe URLs); `CalendarEvent` gained `forRange`/`forDay`/`upcomingList`/`countUpcoming`; homepage cards show the start–end range and link to the day view. **List is the default on phones** (progressive-enhancement redirect; Month override), long titles wrap, the month shows the start–end range. No schema/config change.
 * ✅ **Dashboard enrichment (v2.9, #8b)** — role- & `Features`-gated `/admin` landing: at-a-glance count cards (posts/media for authors; +prayer/contact/events/pages/staff for editors), recent-activity panels (recent posts with state badges; editor: new prayer + unread contact; admin: recent audit feed via `AuditLog::query()`), and quick actions. Additive `Post::dashboardSummary($viewerId,$isEditor)`. Private prayer requests are redacted to "Private request" on the dashboard. Retains the v2.7 limiter-health banner. No schema/route/config change.
+* ✅ **Media thumbnails + multi-image upload (v3.0, #9)** — `\Settle\Upload` generates a small thumbnail (`THUMB_DIMENSION` = 600px long edge) next to each uploaded image and records it in the new `media.thumbnail_filename` column (migration `0005`). Generation lives in a shared public `Upload::makeThumbnail()`/`thumbPath()` (reused by the backfill): images already ≤600px reuse themselves (no second file), transparency is preserved, PDFs/unreadable files yield `NULL`, and a failure is best-effort (never fails the upload). Consumers: the admin grid, the editor picker (**preview only** — the inserted `data-url` stays full-size), and public blog cards (`Post::publishedList`/`publishedListByCategory` select `featured_thumbnail`; single-post/editor/admin queries unchanged); all fall back to full-size on `NULL`. `/admin/media` gains a drag-and-drop multi-file uploader posting one file per request to a JSON endpoint (`uploadAjax`, X-CSRF-Token header, per-file progress/error), with the single-file form retained as the no-JS fallback. `bin/thumbnail-backfill.php` (idempotent) backfills pre-#9 images. No auth/role change.
 * ✅ **Audit-log viewer (v2.6)** — admin-only `/admin/audit`: a paginated, reverse-chronological, **read-only** view of the `audit_log` table with sticky filters (action exact/prefix, entity type, actor, date range). Read methods on `\Settle\AuditLog` (`query`/`count`/`distinct*`, LEFT JOIN `users` for the actor; NULL actor → anonymous/system placeholder); parameterized WHERE; whitelisted filter inputs; escaped `details`; inlined `LIMIT`/`OFFSET`. New `AuditLogController` + `templates/admin/audit/index.php`; sidebar link in the admin group. Viewing is not itself audited. No schema change.
 * ✅ **Home-page design pass + brand-shade coherence (v2.2)** — home consolidated from five full-bleed bands to four (welcome + "This Sunday" merged into one soft band; worship cards now a row at ≥700px, not a desktop stack; events row tightened), reduced vertical rhythm via a **home-only `.section--tight`**, repeated inline styles lifted into `theme.css` classes, and the footer's white-gap `margin-top` removed globally. Derived brand shades (`--brand-primary-dark/-darker`, `--brand-ink-soft`) now track the DB-overridable base vars via CSS `color-mix()` (the prior static hex kept as a legacy fallback), so an admin color change stays coherent across hovers/accents. CSS/template only — no controller/model/route/schema/settings changes.
 * ✅ **Calendar `[hide]` tag + override editor (v2.3)** — the calendar feature is now complete. `[hide]` in a Google Calendar event description hides it site-wide (mirror of `[featured]`; `is_hidden` column, migration `0003`; `[hide]` wins over `[featured]`). `/admin/calendar` (editor+) authors a website-only override **image** (Media-Library picker) and **public note** per event; hide/feature stay tag-driven; the list shows read-only Featured/Hidden badges. `CalendarOverride` model + `CalendarOverrideController`; audited (`calendar.override.set`/`clear`); `updated_by` stamped; Features-gated sidebar link restored.
@@ -358,7 +362,7 @@ settle-private/                        ← Outside web root; not URL-accessible
 
 * No automated tests in the repo yet. **Note (v1.9):** the calendar work was validated by ad-hoc PHP test harnesses (parser, override-overlay, and template-render assertions) run during development against SQLite; these were not committed. The v2.2 home pass was likewise validated by an ad-hoc render harness (21 assertions). PHPUnit + Playwright remain the intended permanent solution.
 * No automated backup strategy documented
-* Image resizing on upload exists (long-edge 2000px) but no thumbnail variant generation
+* ~~Image resizing on upload exists (long-edge 2000px) but no thumbnail variant generation~~ **DONE (v3.0, #9):** a ≤600px thumbnail is generated per image on upload (`media.thumbnail_filename`, migration `0005`), with `bin/thumbnail-backfill.php` for pre-#9 images. (Full-size resize at 2000px long edge unchanged.)
 * ~~No rate-limiting on login~~ **DONE (v2.7, #8):** `\Settle\RateLimiter` enforces 5 attempts / 15-min rolling window on the admin login (keyed on ip+username) and a coarse IP-only cap on the reset-request form; fail-open. Its one fail-open downside — a missing/broken `login_attempts` table silently disables throttling — is now surfaced to admins via `RateLimiter::healthy()` and a dashboard warning banner (v2.7 addendum). The remaining hardening gap here is none.
 * Mailer and calendar sync are synchronous; no retry/queue. Calendar sync is best-effort and bounded by `google_calendar.http_timeout`.
 
@@ -507,7 +511,7 @@ Blog authors can now be created in the admin `/admin/users` UI (roadmap #5, ship
 | ~~8b~~ | ~~Dashboard enrichment~~ | — | **DONE (v2.9).** Role- & Features-gated admin landing: at-a-glance count cards, recent-activity panels (posts/prayer/contact; admin audit feed), quick actions. Additive `Post::dashboardSummary`. Private prayer redacted on the dashboard. Retains the v2.7 limiter banner. No schema/route/config change. |
 | **8a** | **Calendar display enhancements** | 1 day | New, from §2.1. Start/stop times on Upcoming-Events cards AND the full calendar; **day view** + **list view** (see live `/calendar/month/` and `/calendar/list/`); a "Subscribe to Google Calendar" link. Self-contained extension of the now-complete calendar; times already cached — no schema change. |
 | **8b** | **Dashboard "Welcome back" enrichment** | 0.5–1 day | New, from §2.1. Recent contacts, recent prayer requests, recent blog posts on the admin dashboard; optional most-used-pages stats (needs a tiny view counter). Low-risk quick win; models already exist. |
-| 9 | **Media: thumbnail variants + multi-image / drag-&-drop upload** | 1 day | Thumbnails (grid + blog cards still use full-size images) **plus** the §2.1 multi-image / drag-&-drop upload — bundled because both touch the `\Settle\Upload` / Media surface. |
+| ~~9~~ | ~~**Media: thumbnail variants + multi-image / drag-&-drop upload**~~ | — | **DONE (v3.0).** ≤600px thumbnail per image (`media.thumbnail_filename`, migration `0005`, shared `Upload::makeThumbnail`/`thumbPath`); admin grid + editor picker (preview only) + blog cards consume it, full-size fallback on `NULL`; `Post::publishedList`/`publishedListByCategory` gained `featured_thumbnail`. `/admin/media` drag-and-drop multi-upload (per-file JSON endpoint `uploadAjax`, X-CSRF-Token header, progress/error), single-file form kept as no-JS fallback. `bin/thumbnail-backfill.php` for legacy images. No auth/role change. |
 | **9.5** | **Renovation follow-along** | 0.5 day | New, from §2.1. A way for the congregation to follow the upcoming renovation — a dedicated blog category + a landing page (rides the existing blog). **Time-sensitive** ("a few months out"); should land before work begins, so it may jump the queue. |
 | 10 | **Migration of existing content** | 1–2 days | Bulk-import current settleumc.com text + images. Overlaps with #13. **#10b (design sub-pass):** the §2.1 "more eye-catching home page" pass, building on #4c — wants a references conversation before scoping. |
 | 11 | **Tests** | ongoing | PHPUnit for models/controllers; Playwright end-to-end. Commit the calendar + blog + home-render + audit + **rate-limiter (v2.7, 26 assertions)** + **calendar #8a (v2.8: 32-assertion data + 22-assertion render)** harnesses as a starting set. |
@@ -516,7 +520,7 @@ Blog authors can now be created in the admin `/admin/users` UI (roadmap #5, ship
 | **12b** | **Searchable history page + photo archive** | scoping | New, from §2.1. Digitize the two church-history books + new historical material and old member/church photos, all **searchable**. Depends on **#12 (search)**, **#9 (thumbnails)**, and **#10 (content)** — so it sits after those. |
 | **14** | **User help document** | 1 day | New, from §2.1. A user guide as a printable **PDF** and as **HTML** pages, with deep links from admin functions to the relevant section. Scheduled **near launch** (after features freeze) so it doesn't go stale. |
 
-**Recommended sequence (updated v2.9, per owner):** the contractual scope, the Settings/Branding UI (#4), the home-page design pass (#4c), the **calendar feature incl. the [hide] tag + override editor (#4b)**, **user management (#5)**, **self-service password reset (#6b)**, **audit-log viewer (#7)**, **login rate-limiting (#8)**, the **calendar display enhancements (#8a)**, and the **dashboard enrichment (#8b)** are all done. Next is **#9.5 renovation follow-along** *if* its start date is near (time-sensitive — a blog category + a progress landing page), otherwise **#9 media thumbnails + multi-image upload** (bundled). Then **content migration (#10, incl. the #10b home-page design sub-pass) + the settleumc.com gap items (#13)**. **Site search (#12) stays deliberately deferred** until the site is fully populated, after which the **searchable history page (#12b)** can build on it. The **user help doc (#14)** and a pre-launch checklist come last, before DNS cutover. (#11 tests is ongoing.) Full per-version detail for any item lives in `CHANGELOG.md`.
+**Recommended sequence (updated v3.0, per owner):** the contractual scope, the Settings/Branding UI (#4), the home-page design pass (#4c), the **calendar feature incl. the [hide] tag + override editor (#4b)**, **user management (#5)**, **self-service password reset (#6b)**, **audit-log viewer (#7)**, **login rate-limiting (#8)**, the **calendar display enhancements (#8a)**, the **dashboard enrichment (#8b)**, and **media thumbnails + multi-image upload (#9)** are all done. Next is **#9.5 renovation follow-along** *if* its start date is near (time-sensitive — a blog category + a progress landing page; now gets light thumbnail cards for free), otherwise **content migration (#10, incl. the #10b home-page design sub-pass) + the settleumc.com gap items (#13)**. **Site search (#12) stays deliberately deferred** until the site is fully populated, after which the **searchable history page (#12b)** can build on it. The **user help doc (#14)** and a pre-launch checklist come last, before DNS cutover. (#11 tests is ongoing.) Full per-version detail for any item lives in `CHANGELOG.md`.
 
 ---
 
