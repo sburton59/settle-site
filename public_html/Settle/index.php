@@ -19,6 +19,7 @@ require __DIR__ . '/../../settle-private/src/bootstrap.php';
 
 use Settle\Features;
 use Settle\Router;
+use Settle\Controller\AuditLogController;
 use Settle\Controller\AuthController;
 use Settle\Controller\CalendarOverrideController;
 use Settle\Controller\CategoryController;
@@ -83,6 +84,14 @@ $router->get ('/admin/users/{id}/edit',   [UserController::class, 'edit'],      
 $router->post('/admin/users/{id}',        [UserController::class, 'update'],       ['auth' => true, 'role' => 'admin']);
 $router->post('/admin/users/{id}/toggle', [UserController::class, 'toggleActive'], ['auth' => true, 'role' => 'admin']);
 $router->post('/admin/users/{id}/delete', [UserController::class, 'destroy'],      ['auth' => true, 'role' => 'admin']);
+
+// -------------------------------------------------------------------
+// Audit log viewer (admin-only) — read-only window onto audit_log.
+// Core admin like Settings/Users, so NO Features flag gate. Read side
+// only (no writes); the sole audit writer remains \Settle\AuditLog::record().
+// Viewing the log is itself not audited (see PROJECT_HANDOFF.md §9).
+// -------------------------------------------------------------------
+$router->get('/admin/audit', [AuditLogController::class, 'index'], ['auth' => true, 'role' => 'admin']);
 
 // -------------------------------------------------------------------
 // Pages
