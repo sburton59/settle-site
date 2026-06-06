@@ -13,6 +13,7 @@
   --success: #2e7d32;
   --error: #c62828;
   --info: #1565c0;
+  --warning: #b26a00;
 }
 
 * { box-sizing: border-box; }
@@ -137,6 +138,7 @@ body.admin {
 .flash-success { background: #e8f5e9; color: var(--success); border-left: 4px solid var(--success); }
 .flash-error   { background: #ffebee; color: var(--error);   border-left: 4px solid var(--error); }
 .flash-info    { background: #e3f2fd; color: var(--info);    border-left: 4px solid var(--info); }
+.flash-warning { background: #fff3e0; color: var(--warning); border-left: 4px solid var(--warning); }
 
 /* Tables */
 table.list {

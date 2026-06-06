@@ -140,4 +140,23 @@ final class RateLimiter
             error_log('RateLimiter::clear failed: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Liveness probe for the limiter's storage. UNLIKE the hot-path methods
+     * — which fail OPEN and stay silent so a DB problem can never bar a valid
+     * sign-in — this method is allowed to REPORT a problem: it returns false
+     * when the login_attempts table is missing or unreadable. The admin
+     * dashboard uses it to surface a "login protection is not active" warning,
+     * so a broken throttle doesn't go unnoticed (the silent-failure tradeoff
+     * of fail-open). Cheap: a single trivial probe query, no writes.
+     */
+    public static function healthy(): bool
+    {
+        try {
+            Database::query('SELECT 1 FROM login_attempts LIMIT 1');
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
 }
