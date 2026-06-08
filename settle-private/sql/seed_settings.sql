@@ -79,6 +79,8 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 
 -- Homepage content slots (blank by default; filled in via admin
 -- or a later seed pass once copy is finalized)
+('homepage_hero_heading',    'A place for you here'),
+('homepage_hero_subheading', 'Whether you are 2 or 102, we''d love to have you join us this Sunday.'),
 ('homepage_welcome_heading', 'Welcome home'),
 ('homepage_welcome_lead',    ''),
 

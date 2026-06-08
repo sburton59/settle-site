@@ -131,6 +131,12 @@ final class SettingsController extends BaseController
 
             ['title' => 'Homepage',
              'fields' => [
+                ['key' => 'homepage_hero_heading',    'label' => 'Hero heading',      'type' => 'text',     'max' => 150,
+                 'default' => 'A place for you here',
+                 'help' => 'Large headline shown over the homepage slideshow.'],
+                ['key' => 'homepage_hero_subheading', 'label' => 'Hero sub-heading',  'type' => 'textarea', 'max' => 300,
+                 'default' => "Whether you are 2 or 102, we'd love to have you join us this Sunday.",
+                 'help' => 'One or two short lines under the hero heading.'],
                 ['key' => 'homepage_welcome_heading', 'label' => 'Welcome heading',   'type' => 'text',     'max' => 150,
                  'default' => 'Welcome home'],
                 ['key' => 'homepage_welcome_lead',    'label' => 'Welcome lead text', 'type' => 'textarea', 'max' => 500,

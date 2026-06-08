@@ -245,6 +245,135 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 .home-cta p  { margin: 1rem 0 0; opacity: 0.95; }
 
 
+/* ---------- Home #10b: hero overlay, service strip, feature bands ---------- */
+
+/* Text + CTA overlay sitting on the slideshow hero. Above the slides
+   (z-index 2) but below the dot controls (z-index 4) so the dots stay
+   clickable; the overlay ignores pointer events except on its buttons. */
+.hero__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.5rem var(--container-gutter) 3rem;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.30) 45%, rgba(0,0,0,0.55));
+  pointer-events: none;
+}
+.hero__overlay-inner { max-width: 720px; }
+.hero__overlay .btn { pointer-events: auto; }
+.hero__overlay .eyebrow,
+.hero--empty .eyebrow { color: rgba(255,255,255,0.85); }
+.hero__overlay h1,
+.hero--empty h1 {
+  color: #fff;
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.9rem, 5vw, 3.1rem);
+  line-height: 1.12;
+}
+.hero__sub {
+  color: rgba(255,255,255,0.92);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin: 0.9rem auto 0;
+  max-width: 36rem;
+}
+@media (max-width: 600px) {
+  .hero__overlay { padding-bottom: 2rem; }
+  .hero__sub { font-size: 0.95rem; }
+}
+
+/* Compact worship-times strip directly under the hero. */
+.service-strip {
+  background: var(--brand-primary);
+  color: var(--text-on-dark);
+}
+.service-strip__inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
+}
+.service-strip__item {
+  flex: 1 1 8rem;
+  min-width: 8rem;
+  padding: 0.9rem 1.25rem;
+}
+.service-strip__name {
+  display: block;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+.service-strip__time {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+@media (min-width: 600px) {
+  .service-strip__item + .service-strip__item {
+    border-left: 1px solid rgba(255,255,255,0.25);
+  }
+}
+
+/* Three photo "doorway" bands. The staged Section-*.jpg backgrounds (Media
+   Library) supply the photo; until they're imported, .feature-band--plain
+   falls back to a solid ink band so the page still renders correctly. */
+.feature-bands {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 800px) {
+  .feature-bands { grid-template-columns: repeat(3, 1fr); }
+}
+.feature-band {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 200px;
+  padding: 1.5rem;
+  background-color: var(--brand-ink);
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+  text-decoration: none;
+  overflow: hidden;
+}
+.feature-band:hover { color: #fff; }
+@media (min-width: 800px) {
+  .feature-band { min-height: 260px; }
+}
+.feature-band__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0.15));
+  transition: background var(--transition-med);
+}
+.feature-band:hover .feature-band__scrim,
+.feature-band:focus-visible .feature-band__scrim {
+  background: linear-gradient(to top, rgba(0,0,0,0.80), rgba(0,0,0,0.32));
+}
+.feature-band__content { position: relative; z-index: 1; }
+.feature-band__title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+.feature-band__cta {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  opacity: 0.92;
+}
+.feature-band:hover .feature-band__cta { opacity: 1; }
+
+
 /* Buttons */
 .btn {
   display: inline-block;

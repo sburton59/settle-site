@@ -2,11 +2,13 @@
 /**
  * Homepage.
  *
- * @var array        $settings    From PublicView
- * @var array        $menu_tree   From PublicView
- * @var array|null   $about       From PublicController::home() — the about page row (for welcome text)
- * @var array        $slides      From PublicController::home() — active slideshow slides
- * @var Closure      $e           htmlspecialchars helper from View::render()
+ * @var array        $settings           From PublicView
+ * @var array        $menu_tree          From PublicView
+ * @var array|null   $about              From PublicController::home() — about page row (welcome text)
+ * @var array        $slides             From PublicController::home() — active slideshow slides
+ * @var array        $events             From PublicController::home() — upcoming events (may be empty)
+ * @var array        $sectionBackgrounds From PublicController::home() — feature-band images, keyed by original_name
+ * @var Closure      $e                  htmlspecialchars helper from View::render()
  */
 
 // Settings accessor (same closure pattern as the layout).
@@ -16,8 +18,13 @@ $s = static function (string $key, string $default = '') use ($settings): string
         : $default;
 };
 
-$slides = $slides ?? [];
+$slides    = $slides ?? [];
 $hasSlides = $slides !== [];
+
+// Hero overlay copy — editable in /admin/settings (Homepage group), with
+// sensible fallbacks so the hero is never blank on a fresh install.
+$heroHeading = $s('homepage_hero_heading', 'A place for you here');
+$heroSub     = $s('homepage_hero_subheading', "Whether you are 2 or 102, we'd love to have you join us this Sunday.");
 ?>
 
 <?php if ($hasSlides): ?>
@@ -71,30 +78,75 @@ $hasSlides = $slides !== [];
         </div>
       <?php endif; ?>
     </div>
+
+    <div class="hero__overlay">
+      <div class="hero__overlay-inner">
+        <div class="eyebrow">Welcome</div>
+        <h1><?= $e($heroHeading) ?></h1>
+        <?php if ($heroSub !== ''): ?>
+          <p class="hero__sub"><?= $e($heroSub) ?></p>
+        <?php endif; ?>
+        <div class="btn-row">
+          <a class="btn" href="/page/im-new">Plan Your Visit</a>
+          <a class="btn btn--on-dark" href="/page/watch">Watch Online</a>
+        </div>
+      </div>
+    </div>
   </section>
 
   <script src="/assets/js/slideshow.js" defer></script>
 <?php else: ?>
-  <!-- Empty-state hero: no slides seeded yet. -->
+  <!-- Empty-state hero: no slides seeded yet. Same copy/CTAs as the
+       slideshow hero, on the plain brand band. -->
   <section class="hero hero--empty">
-    <div class="container">
-      <h1><?= $e($s('church_name', 'Welcome')) ?></h1>
-      <?php if ($s('church_tagline') !== ''): ?>
-        <p class="hero--empty__tagline"><?= $e($s('church_tagline')) ?></p>
+    <div class="container hero__overlay-inner">
+      <div class="eyebrow">Welcome</div>
+      <h1><?= $e($heroHeading) ?></h1>
+      <?php if ($heroSub !== ''): ?>
+        <p class="hero__sub"><?= $e($heroSub) ?></p>
       <?php endif; ?>
+      <div class="btn-row">
+        <a class="btn btn--on-dark" href="/page/im-new">Plan Your Visit</a>
+        <a class="btn btn--on-dark" href="/page/watch">Watch Online</a>
+      </div>
     </div>
   </section>
 <?php endif; ?>
 
 <?php
-// Service-times band shows if at least one worship_* setting is populated.
-$hasWorship = $s('worship_traditional') !== ''
-            || $s('worship_contemporary') !== ''
-            || $s('worship_sunday_school') !== '';
+// Compact worship-times strip, directly under the hero. Times come from
+// the worship_* settings; only populated services render. The contemporary
+// service has its own "Shout!" label here, so a trailing "(SHOUT!)" the
+// stored time may carry is dropped for display only (the setting is left
+// untouched, and the footer still shows it).
+$schoolTime  = $s('worship_sunday_school');
+$tradTime    = $s('worship_traditional');
+$contemp     = $s('worship_contemporary');
+$contempTime = preg_replace('/\s*\((?:shout!?)\)\s*$/i', '', $contemp);
+$contempTime = is_string($contempTime) ? trim($contempTime) : $contemp;
+
+$services = [];
+if ($schoolTime !== '') { $services[] = ['Sunday School', $schoolTime]; }
+if ($tradTime   !== '') { $services[] = ['Traditional',   $tradTime];   }
+if ($contemp    !== '') { $services[] = ['Shout!',        $contempTime]; }
 ?>
+<?php if ($services !== []): ?>
+  <section class="service-strip" aria-label="Worship times">
+    <div class="container">
+      <div class="service-strip__inner">
+        <?php foreach ($services as [$svcName, $svcTime]): ?>
+          <div class="service-strip__item">
+            <span class="service-strip__name"><?= $e($svcName) ?></span>
+            <span class="service-strip__time"><?= $e($svcTime) ?></span>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </section>
+<?php endif; ?>
+
 <section class="section section--tight section--soft">
   <div class="container">
-
     <div class="home-welcome">
       <div class="eyebrow"><?= $e($s('church_short_name', 'Welcome')) ?></div>
       <h2><?= $e($s('homepage_welcome_heading', 'Welcome home')) ?></h2>
@@ -122,40 +174,45 @@ $hasWorship = $s('worship_traditional') !== ''
       <?php if ($lead !== ''): ?>
         <p class="home-welcome__lead"><?= $e($lead) ?></p>
       <?php endif; ?>
-      <div class="btn-row">
-        <a class="btn" href="/page/about">Learn More</a>
-        <a class="btn btn--ghost" href="/page/im-new">I'm New</a>
-      </div>
     </div>
-
-    <?php if ($hasWorship): ?>
-      <div class="section-head section-head--sub">
-        <div class="eyebrow">Join Us</div>
-        <h3>This Sunday</h3>
-      </div>
-      <div class="worship-times">
-        <?php if ($s('worship_sunday_school') !== ''): ?>
-          <div class="worship-card">
-            <h4 class="worship-card__service">Sunday School</h4>
-            <div class="worship-card__time"><?= $e($s('worship_sunday_school')) ?></div>
-          </div>
-        <?php endif; ?>
-        <?php if ($s('worship_traditional') !== ''): ?>
-          <div class="worship-card">
-            <h4 class="worship-card__service">Traditional Worship</h4>
-            <div class="worship-card__time"><?= $e($s('worship_traditional')) ?></div>
-          </div>
-        <?php endif; ?>
-        <?php if ($s('worship_contemporary') !== ''): ?>
-          <div class="worship-card">
-            <h4 class="worship-card__service">Contemporary Worship</h4>
-            <div class="worship-card__time"><?= $e($s('worship_contemporary')) ?></div>
-          </div>
-        <?php endif; ?>
-      </div>
-    <?php endif; ?>
-
   </div>
+</section>
+
+<?php
+// Three photo "doorway" bands into key areas. Backgrounds come from the
+// staged Media Library assets (resolved by original_name in the
+// controller); a missing image degrades to a solid band via
+// .feature-band--plain. Labels/links are intentionally hardcoded.
+$sectionBackgrounds = $sectionBackgrounds ?? [];
+$featureBands = [
+    ['title' => "I'm New",         'cta' => 'Start here',               'href' => '/page/im-new',  'asset' => 'Section-Im-New.jpg'],
+    ['title' => 'Grow in Faith',   'cta' => 'Children, youth & adults', 'href' => '/page/connect', 'asset' => 'Section-Faith-Development.jpg'],
+    ['title' => 'Worship With Us', 'cta' => 'Plan your Sunday',         'href' => '/page/sundays', 'asset' => 'Section-Worship.jpg'],
+];
+?>
+<section class="feature-bands" aria-label="Find your place">
+  <?php foreach ($featureBands as $band): ?>
+    <?php
+      $row    = $sectionBackgrounds[$band['asset']] ?? null;
+      $imgUrl = '';
+      if ($row !== null && !empty($row['filename'])) {
+          // Same URL convention as the slideshow / event cards: keep the
+          // path separators as real slashes — do NOT url-encode them.
+          $imgUrl = '/uploads/' . ltrim((string) $row['filename'], '/');
+      }
+      $bandClass = 'feature-band' . ($imgUrl === '' ? ' feature-band--plain' : '');
+      $bandStyle = $imgUrl !== ''
+          ? ' style="background-image:url(\'' . $e($imgUrl) . '\')"'
+          : '';
+    ?>
+    <a class="<?= $bandClass ?>"<?= $bandStyle ?> href="<?= $e($band['href']) ?>">
+      <span class="feature-band__scrim" aria-hidden="true"></span>
+      <span class="feature-band__content">
+        <span class="feature-band__title"><?= $e($band['title']) ?></span>
+        <span class="feature-band__cta"><?= $e($band['cta']) ?> <span aria-hidden="true">&rarr;</span></span>
+      </span>
+    </a>
+  <?php endforeach; ?>
 </section>
 
 <?php

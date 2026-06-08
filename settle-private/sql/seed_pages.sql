@@ -36,6 +36,18 @@ SELECT 'im-new', 'I''m New', '<p><em>Draft — content to be added during migrat
        (SELECT id FROM users ORDER BY id LIMIT 1)
 WHERE NOT EXISTS (SELECT 1 FROM pages WHERE slug = 'im-new');
 
+-- "Connect" landing page (#10b). Unlike the migration drafts above this is
+-- seeded PUBLISHED, because the homepage "Grow in Faith" feature band links
+-- to it. Its body links on to the ministry pages, which light up as those
+-- drafts are published during the #10 content migration. The existing
+-- "Connect" nav item is a no-link dropdown parent, so this page does not
+-- appear in the nav (show_in_nav = 0); point that parent at /page/connect
+-- in /admin/menu if you want the dropdown label itself to be clickable.
+INSERT INTO pages (slug, title, body_html, meta_description, show_in_nav, is_published, updated_by)
+SELECT 'connect', 'Connect', '<p>There''s a place for everyone at Settle Memorial. However you''d like to grow, serve, or get involved, here''s where to start.</p><ul><li><a href="/page/im-new">New here? Start with I''m New</a></li><li><a href="/page/children">Children''s Ministry</a></li><li><a href="/page/youth">Youth Ministry</a></li><li><a href="/page/adult-ministries">Adult Ministries</a></li><li><a href="/page/the-roadrunners">The Roadrunners</a></li><li><a href="/page/settle-preschool">Settle Preschool</a></li><li><a href="/page/parents-day-out">Parents'' Day Out</a></li></ul>', 'Find your place at Settle Memorial — ministries and groups for children, youth, and adults.', 0, 1,
+       (SELECT id FROM users ORDER BY id LIMIT 1)
+WHERE NOT EXISTS (SELECT 1 FROM pages WHERE slug = 'connect');
+
 INSERT INTO pages (slug, title, body_html, meta_description, show_in_nav, is_published, updated_by)
 SELECT 'sundays', 'Sundays Worship Services', '<p><em>Draft — content to be added during migration.</em></p>', 'Worship service times and what to expect on Sunday.', 0, 0,
        (SELECT id FROM users ORDER BY id LIMIT 1)

@@ -7,6 +7,7 @@ use Settle\CalendarFormat;
 use Settle\Features;
 use Settle\Model\CalendarEvent;
 use Settle\Model\Category;
+use Settle\Model\Media;
 use Settle\Model\Page;
 use Settle\Model\Post;
 use Settle\Model\Slideshow;
@@ -42,10 +43,21 @@ final class PublicController extends BaseController
             $events = CalendarEvent::upcoming($count, 90);
         }
 
+        // Homepage feature-band backgrounds, staged in the Media Library
+        // (v3.2 image pass) and looked up by stable original_name. If a row
+        // is missing — e.g. migrate-wp-images.php hasn't run yet — the
+        // template falls back to a solid band, so the page still renders.
+        $sectionBackgrounds = Media::findByOriginalNames([
+            'Section-Im-New.jpg',
+            'Section-Faith-Development.jpg',
+            'Section-Worship.jpg',
+        ]);
+
         PublicView::render('public/home', [
-            'about'  => $about,
-            'slides' => $slides,
-            'events' => $events,
+            'about'              => $about,
+            'slides'             => $slides,
+            'events'             => $events,
+            'sectionBackgrounds' => $sectionBackgrounds,
         ]);
     }
 

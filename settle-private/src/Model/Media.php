@@ -36,6 +36,45 @@ final class Media
         return $row ?: null;
     }
 
+    /**
+     * Resolve pre-staged assets by their original_name, returned as a map
+     * keyed by original_name. Lets a template reference a Library image by
+     * a stable name (e.g. the homepage section backgrounds) without hard-
+     * coding row IDs. Names that don't exist are simply absent from the map.
+     *
+     * @param array<int, string> $names
+     * @return array<string, array> original_name => media row
+     */
+    public static function findByOriginalNames(array $names): array
+    {
+        $names = array_values(array_unique(array_filter(
+            $names,
+            static fn ($n): bool => is_string($n) && $n !== ''
+        )));
+        if ($names === []) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params       = [];
+        foreach ($names as $i => $name) {
+            $key                = ':n' . $i;
+            $placeholders[]     = $key;
+            $params[$key]       = $name;
+        }
+
+        $rows = Database::query(
+            'SELECT * FROM media WHERE original_name IN (' . implode(', ', $placeholders) . ')',
+            $params
+        )->fetchAll();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(string) $row['original_name']] = $row;
+        }
+        return $map;
+    }
+
     public static function create(array $data, int $userId): int
     {
         Database::query(

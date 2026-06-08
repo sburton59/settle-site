@@ -1,6 +1,6 @@
 # **Settle Memorial UMC Website Modernization — Project Handoff**
 
-**Document version:** 3.2 **Date prepared:** June 8, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
+**Document version:** 3.3 **Date prepared:** June 8, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
 
 **Recent changes** (full history in `CHANGELOG.md`):
 
@@ -34,7 +34,7 @@ The new site is built from scratch — no framework, no WordPress, no CMS depend
 
 Current status as of handoff: **Pages CRUD, Media Library, WYSIWYG editor, Homepage Slideshow, Staff Directory, Prayer Requests, Contact Form, public theming, a data-driven menu system, outbound email notifications, Google Calendar integration, the multi-author blog (with categories + scheduled publishing), an admin Settings UI with a Branding section, AND a home-page design pass are all working end-to-end.** A staff member can log in, edit pages, manage images, manage the homepage slideshow, maintain a staff directory, triage prayer requests and contact messages, manage the public navigation, and author blog posts — all through the admin panel; an admin can additionally edit church identity, contact, notification routing, social links, homepage copy, and branding (logo/favicon and brand colors) from `/admin/settings`. New contact and prayer submissions notify staff by email. Church events are managed entirely in Google Calendar and appear automatically on the public site.
 
-**All five contractual proposal features are complete** (standard pages/photo management, homepage slideshow, multi-author blog, Google Calendar integration, secure admin panel), and a run of post-contract features have also shipped: the Settings UI + Branding (#4), the home-page design pass (#4c), the calendar `[hide]` tag + override editor (#4b), user management (#5), self-service password reset (#6b), the audit-log viewer (#7), login rate-limiting (#8), the **calendar display enhancements (#8a — spanning-bar month grid + list/day views + subscribe links)**, and the **dashboard enrichment (#8b — role-aware "Welcome back" page)**, and **media thumbnails + multi-image / drag-&-drop upload (#9)**. The remaining roadmap is the renovation follow-along (#9.5, time-sensitive), content migration + the settleumc.com gap items (#10/#13), site search and a searchable history page (#12/#12b), a user help doc (#14), tests (#11), and a pre-launch checklist. The roadmap is in §10; the full per-version history is in `CHANGELOG.md`.
+**All five contractual proposal features are complete** (standard pages/photo management, homepage slideshow, multi-author blog, Google Calendar integration, secure admin panel), and a run of post-contract features have also shipped: the Settings UI + Branding (#4), the home-page design pass (#4c), the calendar `[hide]` tag + override editor (#4b), user management (#5), self-service password reset (#6b), the audit-log viewer (#7), login rate-limiting (#8), the **calendar display enhancements (#8a — spanning-bar month grid + list/day views + subscribe links)**, and the **dashboard enrichment (#8b — role-aware "Welcome back" page)**, and **media thumbnails + multi-image / drag-&-drop upload (#9)**, and the **home-page redesign (#10b — hero text/CTA overlay + compact service-times strip + three photo feature bands)**. The remaining roadmap is the renovation follow-along (#9.5, time-sensitive), the rest of content migration + the settleumc.com gap items (#10/#13), site search and a searchable history page (#12/#12b), a user help doc (#14), tests (#11), and a pre-launch checklist. The roadmap is in §10; the full per-version history is in `CHANGELOG.md`.
 
 The site is visually presentable for stakeholder review, email-functional, and calendar-functional. It still runs at `settlemem.org` (and `settleumc.org`) only; `settleumc.com` continues to serve the old WordPress site until DNS cutover at launch.
 
@@ -148,7 +148,7 @@ A complete inventory was extracted from the existing settleumc.com WordPress sit
 * **Apple touch icon (180x180):** `https://settleumc.com/wp-content/uploads/cropped-Favicon-180x180.png`
 * **Typography:** Cinzel (display, uppercase) + Lato (body), from Google Fonts
 * **21 homepage slideshow photos** — **imported to the Media Library + slideshow (v3.2)**
-* **3 section background images** (Im-New.jpg, Faith-Development.jpg, Worship.jpg) — **imported to the Media Library (v3.2); placement deferred to #10b**
+* **3 section background images** (Im-New.jpg, Faith-Development.jpg, Worship.jpg) — **imported to the Media Library (v3.2); placed on the home page as the three feature bands (v3.3, #10b)**, resolved by `original_name` (`Section-*.jpg`)
 * **10 staff portrait photos** — **imported & attached (v3.2);** the live roster actually carries **9** usable portraits (Jeff Keeley and Lori Roach have none) across **11** staff — see §17.7
 * **All page text content** — extracted as copy-ready prose
 * **10-person staff directory** with titles and emails (Mark Dickinson, Alecia Meyer, Aimee Keith, Kim Massey, Rebecca Volk, Chris Tolliver, Jeff Keeley, Libby Kassinger, Lori Roach, Sharee Best, Wesley Marcum)
@@ -763,7 +763,7 @@ A one-time server-shell tool (same family as `calendar-sync` / `thumbnail-backfi
 1. **Run `bin/migrate-wp-assets.php`** (page-body images/PDFs) **and `bin/migrate-wp-images.php`** (slideshow/portraits/section-bg, v3.2) on the server **before cutover** — both pull from the live WordPress site. `seed_staff.sql` must run before the latter.
 2. **Review & publish** the 21 drafts in `/admin/pages` (they ship unpublished by design).
 3. **Old→new URL redirect map** for cutover (owner-approved; next session).
-4. **#10b** the "more eye-catching home page" design sub-pass (wants a references conversation) — the 3 imported section backgrounds (Im-New / Faith-Development / Worship) are staged in the Library for this.
+4. **#10b** the "more eye-catching home page" design sub-pass is **done (v3.3, §17.8)** — hero overlay + service strip + three photo feature bands; the 3 imported section backgrounds (Im-New / Faith-Development / Worship) now back those bands.
 5. The **slideshow/staff/section-bg** image import pass is **done (v3.2, §17.7)**; the remaining **#13** gap items stand (Sermons categorisation, Watch/livestream embed, mobile smart-banner).
 
 ---
@@ -791,7 +791,30 @@ Per §13.18, the CLI **cannot call `Upload::handle()`** (HTTP-upload-only). It r
 3. **Add staff emails** in `/admin/staff` (seeded NULL). Set **Libby Kassinger's title** if you have one.
 4. The 9 portraits include 4 non-portrait landscape graphics — swap for real headshots when available.
 5. The 21 slides import **active**; reorder/curate in `/admin/slideshow` to taste.
-6. Section backgrounds sit unused in the Library until **#10b** places them.
+6. Section backgrounds were staged in the Library by this pass and are now placed on the home page by **#10b** (v3.3, §17.8) as the three feature bands.
 
 ### **17.7.5 Validation**
 A 33-assertion SQLite/GD harness (not committed): `seed_staff.sql` rows/titles/NULL-handling/sort-order/idempotency; `mwi_map()` shape (21/9/3) + every portrait name cross-checked against the seed + Jeff/Lori absent; the mirrored down-scale (3000×1500→2000×1000, ≤2000 untouched, PNG-alpha path); and the DB write semantics (guarded portrait attach is a no-op on re-run; slide dedup). All passing; `php -l` clean. **No schema change** (staff/slideshow_slides/media tables already existed). **No code/route/template change** — seed + CLI only.
+
+
+## **17.8 Home-page redesign (#10b) — as-built (NEW v3.3)**
+
+The "more eye-catching home page" sub-pass (building on the #4c design pass). Scope chosen with the owner: **option 2 (additive)** — keep the existing band skeleton and enrich it — plus the one structural idea lifted from the option-3 mockup, the service-times strip. The new home flow is: **photo hero with a text/CTA overlay → compact crimson service-times strip → trimmed welcome band → three photo feature bands → Upcoming Events (unchanged) → "Get in touch" CTA (unchanged)**.
+
+### **17.8.1 What shipped**
+1. **Hero overlay** — an eyebrow + heading + sub-line + two CTAs (`Plan Your Visit` → `/page/im-new`, `Watch Online` → `/page/watch`) centered over the slideshow on a dark scrim (same rgba-black treatment as the existing `.slideshow__caption`). `z-index:3` (above the slides' `2`, below the dots' `4`); the overlay is `pointer-events:none` with `pointer-events:auto` re-enabled on the buttons, so the dot controls stay clickable. The same copy/CTAs render on the no-slides `.hero--empty` fallback. Heading/sub-line are **editable in Settings** (`homepage_hero_heading`, `homepage_hero_subheading`).
+2. **Service-times strip** — a compact full-width crimson band directly under the hero, fed by the existing `worship_*` settings; only populated services render. The contemporary service is labeled **"Shout!"** here, and a trailing `(SHOUT!)` the stored `worship_contemporary` value carries is stripped **for display only** (settings untouched; the footer still shows it). The old "This Sunday" worship-card grid was **removed** from the welcome band (single source of truth for the times); the welcome band is now eyebrow + heading + lead only.
+3. **Three photo feature bands** — `I'm New` (`/page/im-new`), `Grow in Faith` (`/page/connect`), `Worship With Us` (`/page/sundays`). Backgrounds come from the v3.2-staged Library assets, resolved by `original_name` (`Section-Im-New.jpg` / `Section-Faith-Development.jpg` / `Section-Worship.jpg`) via the new **`Media::findByOriginalNames()`** and built with the §13.12 URL convention (`/uploads/` + `ltrim`, no encoding). A missing image degrades to `.feature-band--plain` (solid ink), so the page is correct **before** `migrate-wp-images.php` runs and just gets richer once the photos land. Labels/links are hardcoded (owner decision); only the images come from the Library.
+4. **Connect landing page** — a new **published** `connect` page (slug `connect`) seeded in `seed_pages.sql` so the middle feature band has a target; its body links on to the ministry pages (which light up as those drafts are published in #10). The existing "Connect" nav item is a no-link dropdown parent, so the page is `show_in_nav = 0` and does not duplicate the nav.
+
+### **17.8.2 Files**
+**REPLACE:** `templates/public/home.php` (overlay, strip, feature bands, trimmed welcome), `assets/css/theme.css` (new `.hero__overlay` / `.service-strip` / `.feature-band*` block; **no new `:root` brand values** — reuses `--brand-primary`/`-ink`, `--font-display`, `--text-on-dark`, existing `color-mix()` shades), `src/Controller/PublicController.php` (`home()` resolves the three section backgrounds), `src/Model/Media.php` (+`findByOriginalNames()`), `src/Controller/SettingsController.php` (two fields in the "Homepage" group), `sql/seed_settings.sql` (two hero rows), `sql/seed_pages.sql` (Connect page). **No new files, no schema change, no migration, no route change, no config change.** The settings form template is schema-driven, so it needed no edit.
+
+### **17.8.3 Validation**
+A 49-assertion harness (not committed): `Media::findByOriginalNames()` against SQLite (hit/miss/dedup/empty-input); a `home.php` render in both hero states asserting the overlay copy + CTAs, the service strip with the three labels and the `(SHOUT!)` strip, the feature bands (image URL vs `--plain` fallback, correct hrefs), the trimmed welcome band (no worship cards / no "This Sunday" / no "Learn More"), and graceful degradation when no worship settings are set; the Connect `INSERT` executed against SQLite (published, hidden from nav, apostrophe escaping intact, idempotent re-run); and a `theme.css` guard that no new `--brand-*` custom property was introduced. All passing; `php -l` clean on every changed PHP file.
+
+### **17.8.4 Owner follow-ups**
+* The three feature-band photos only appear once **`bin/migrate-wp-images.php`** has run (it imports `Section-*.jpg`); until then the bands show as solid ink. The bands link correctly regardless.
+* The Connect page body links to the ministry pages, which are still **drafts** — those links 404 until the #10 content migration publishes them. (Expected pre-launch.)
+* If you want the "Connect" **nav** label itself clickable, point that dropdown parent at `/page/connect` in `/admin/menu`.
+* Hero heading/sub-line are in **Settings → Homepage**; the service-strip times remain in **Settings → Worship times** (the `(SHOUT!)` suffix can now be dropped from the contemporary value since the strip labels it "Shout!").
