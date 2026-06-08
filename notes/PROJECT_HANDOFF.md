@@ -1,11 +1,12 @@
 # **Settle Memorial UMC Website Modernization — Project Handoff**
 
-**Document version:** 3.1 **Date prepared:** June 8, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
+**Document version:** 3.2 **Date prepared:** June 8, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
 
 **Recent changes** (full history in `CHANGELOG.md`):
 
 | Ver | Date | Summary | More |
 | --- | --- | --- | --- |
+| 3.2 | 2026-06-08 | Image pass (#10 tail): `seed_staff.sql` (11 staff rows) + `bin/migrate-wp-images.php` — 21 slideshow imports, 9 staff portraits attached, 3 section bgs to Library | §4, §17 |
 | 3.1 | 2026-06-08 | Content migration (#10): 3-tier nav + 21 draft pages, content seeds (link / welcome-info / Connect-ministry), nav-toggle fix, media Copy-link, wp-asset migration CLI | §7, §10, §17 |
 | 3.0 | 2026-06-06 | Media thumbnails + multi-image / drag-&-drop upload (#9) | §5, §7, §10 |
 | 2.9 | 2026-06-06 | Dashboard enrichment (#8b): role-aware cards + recent activity + quick actions | §7, §10 |
@@ -146,9 +147,9 @@ A complete inventory was extracted from the existing settleumc.com WordPress sit
 * **Favicon (32x32):** `https://settleumc.com/wp-content/uploads/cropped-Favicon-32x32.png`
 * **Apple touch icon (180x180):** `https://settleumc.com/wp-content/uploads/cropped-Favicon-180x180.png`
 * **Typography:** Cinzel (display, uppercase) + Lato (body), from Google Fonts
-* **21 homepage slideshow photos** — not yet imported to the Media Library
-* **3 section background images** (Im-New.jpg, Faith-Development.jpg, Worship.jpg) — not yet imported
-* **10 staff portrait photos** — not yet imported
+* **21 homepage slideshow photos** — **imported to the Media Library + slideshow (v3.2)**
+* **3 section background images** (Im-New.jpg, Faith-Development.jpg, Worship.jpg) — **imported to the Media Library (v3.2); placement deferred to #10b**
+* **10 staff portrait photos** — **imported & attached (v3.2);** the live roster actually carries **9** usable portraits (Jeff Keeley and Lori Roach have none) across **11** staff — see §17.7
 * **All page text content** — extracted as copy-ready prose
 * **10-person staff directory** with titles and emails (Mark Dickinson, Alecia Meyer, Aimee Keith, Kim Massey, Rebecca Volk, Chris Tolliver, Jeff Keeley, Libby Kassinger, Lori Roach, Sharee Best, Wesley Marcum)
 * **Contact info:** (270) 684-4226; P.O. Box 1756, Owensboro, KY 42302; physical address **202 E. 4th Street, Owensboro, KY 42303**
@@ -756,11 +757,41 @@ A one-time server-shell tool (same family as `calendar-sync` / `thumbnail-backfi
 * **Two Guest Survey links** existed on the live I'm New vs Sundays pages; both migrated pages use the I'm New one — **confirm the current link.**
 * **wp-content re-host:** the asset CLI handles the page images + job/registration PDFs. **The Give page's Legacy-Giving-Guide.pdf was uploaded manually by the owner** — the CLI skips it; point that one link at the manual upload via the Media "Copy link" button.
 * **Flyer images** (preschool info-sheet, "is hiring" banner) migrated **faithfully** per owner instruction, though they bake text into an image (consider real text later).
-* **Slideshow (21) / staff portraits (10) / section backgrounds (3)** are **out of scope for this pass** — they live in the Slideshow/Staff admin surfaces and are the next image pass.
+* **Slideshow (21) / staff portraits / section backgrounds (3)** were out of scope for the v3.1 content pass and shipped in the **v3.2 image pass** — see §17.7.
 
 ### **17.6 Remaining for #10**
-1. **Run `bin/migrate-wp-assets.php`** on the server **before cutover**.
+1. **Run `bin/migrate-wp-assets.php`** (page-body images/PDFs) **and `bin/migrate-wp-images.php`** (slideshow/portraits/section-bg, v3.2) on the server **before cutover** — both pull from the live WordPress site. `seed_staff.sql` must run before the latter.
 2. **Review & publish** the 21 drafts in `/admin/pages` (they ship unpublished by design).
 3. **Old→new URL redirect map** for cutover (owner-approved; next session).
-4. **#10b** the "more eye-catching home page" design sub-pass (wants a references conversation).
-5. The **slideshow/staff/section-bg** image import pass, and the remaining **#13** gap items (Sermons categorisation, Watch/livestream embed, mobile smart-banner).
+4. **#10b** the "more eye-catching home page" design sub-pass (wants a references conversation) — the 3 imported section backgrounds (Im-New / Faith-Development / Worship) are staged in the Library for this.
+5. The **slideshow/staff/section-bg** image import pass is **done (v3.2, §17.7)**; the remaining **#13** gap items stand (Sermons categorisation, Watch/livestream embed, mobile smart-banner).
+
+---
+
+## **17.7 Image pass — Slideshow / Staff portraits / Section backgrounds (#10 tail) — as-built (NEW v3.2)**
+
+The image assets deferred out of v3.1 (§17.5). These live in the admin **surfaces** (Slideshow, Staff) and the Media Library, not in page bodies — so they ship as a **staff seed + a sibling import CLI**, not as content seeds.
+
+### **17.7.1 Source map (scraped from the live site, owner-approved)**
+The live WordPress site was scraped for the exact `wp-content/uploads/` filenames:
+* **Slideshow:** the homepage hero carries exactly **21** Flickr-numbered JPGs; imported in live display order, no per-slide caption (the "I'm New / Sundays / Contact" overlay is the hero CTA, not slide text), generic alt "Settle Memorial church life".
+* **Staff:** `/listings/staff/` lists **11** people. **9** have a usable portrait; **Jeff Keeley** and **Lori Roach** have none (they fall back to `silhouette.svg`). Per the owner, **all 9 available portraits are imported** — including the four 768×432 landscape graphics (Alecia Meyer, Kim Massey, Chris Tolliver, Wesley Marcum), which are not portrait-cropped and may want replacing later. The §4 "10 portraits" predates the live site's drift.
+* **Section backgrounds:** `Im-New.jpg`, `Faith-Development.jpg`, `Worship.jpg` (names from the §4 inventory; they are CSS backgrounds on the old site, so not re-confirmed by scrape — the importer's download is best-effort and reports a 404 if a name is wrong).
+
+### **17.7.2 Deliverables**
+* **`sql/seed_staff.sql`** — the **11 staff rows** in live order (`sort_order` 10–110, `is_visible = 1`), idempotent via `INSERT … SELECT … WHERE NOT EXISTS (full_name)` (the §17.2 pattern). **Titles** are verbatim from the live roster (Mark Dickinson = "Senior Pastor"; **Libby Kassinger** had no title → NULL). **Emails are seeded NULL** — the live site obfuscates them (Cloudflare email-protection), so they were unrecoverable; add them in `/admin/staff`. **Run this first.**
+* **`bin/migrate-wp-images.php`** — a one-time importer, **sibling to `bin/migrate-wp-assets.php`** and same family as `calendar-sync` / `thumbnail-backfill`. Three buckets: (a) **slideshow** — import each image, then `Model\Slideshow::create()` a slide (dedup: skip if a `slideshow_slides` row already references that media); (b) **portraits** — look up the staff row by `full_name`, then **guarded attach** `UPDATE staff SET photo_media_id = :mid WHERE full_name = :n AND photo_media_id IS NULL` (never clobbers a hand-set photo; notes a missing row so you know to run the seed first); (c) **section bgs** — import to the Media Library only.
+
+### **17.7.3 Conventions reused / mirrored**
+Per §13.18, the CLI **cannot call `Upload::handle()`** (HTTP-upload-only). It reuses the public surface — **`Upload::makeThumbnail()`/`thumbPath()`** for the 600px thumbnail and **`Model\Media::create()`** for the row — and re-implements only the **>2000px down-scale**, mirroring `Upload::maybeResize()`'s GD calls + quality constants (kept in sync deliberately). Reuse/idempotency dedup is on **`media.original_name`** (slideshow images get tidy `Slideshow-NN.jpg` names; portraits get `First-Last.ext`). `uploaded_by` = first admin (else lowest user id). Best-effort downloads (a failure is logged + skipped, never half-writes a row). **Must run before DNS cutover** while the source URLs are alive.
+
+### **17.7.4 Run order & owner follow-ups**
+1. `sql/seed_staff.sql` (phpMyAdmin) — creates the 11 rows.
+2. `php settle-private/bin/migrate-wp-images.php` on the server, **before cutover**.
+3. **Add staff emails** in `/admin/staff` (seeded NULL). Set **Libby Kassinger's title** if you have one.
+4. The 9 portraits include 4 non-portrait landscape graphics — swap for real headshots when available.
+5. The 21 slides import **active**; reorder/curate in `/admin/slideshow` to taste.
+6. Section backgrounds sit unused in the Library until **#10b** places them.
+
+### **17.7.5 Validation**
+A 33-assertion SQLite/GD harness (not committed): `seed_staff.sql` rows/titles/NULL-handling/sort-order/idempotency; `mwi_map()` shape (21/9/3) + every portrait name cross-checked against the seed + Jeff/Lori absent; the mirrored down-scale (3000×1500→2000×1000, ≤2000 untouched, PNG-alpha path); and the DB write semantics (guarded portrait attach is a no-op on re-run; slide dedup). All passing; `php -l` clean. **No schema change** (staff/slideshow_slides/media tables already existed). **No code/route/template change** — seed + CLI only.
