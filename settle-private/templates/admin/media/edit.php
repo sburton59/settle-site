@@ -44,7 +44,11 @@ $url     = '/uploads/' . htmlspecialchars($media['filename'], ENT_QUOTES);
             <div style="margin-top:0.3em;"><strong>File size:</strong>
                 <?= number_format((int)$media['file_size'] / 1024, 1) ?> KB</div>
             <div style="margin-top:0.3em;"><strong>Public URL:</strong>
-                <code style="font-size:0.85em; word-break:break-all;"><?= $url ?></code></div>
+                <code id="media-url" style="font-size:0.85em; word-break:break-all;"><?= $url ?></code>
+                <button type="button" class="linklike" data-copy-target="media-url"
+                        style="margin-left:0.5em; font-size:0.85em;">Copy link</button>
+                <span class="copy-feedback muted" hidden
+                      style="margin-left:0.3em; font-size:0.85em;">Copied!</span></div>
             <div style="margin-top:0.3em;"><strong>Uploaded:</strong>
                 <?= htmlspecialchars(date('M j, Y', strtotime($media['uploaded_at'])), ENT_QUOTES) ?></div>
         </div>
@@ -93,3 +97,38 @@ $url     = '/uploads/' . htmlspecialchars($media['filename'], ENT_QUOTES);
         </form>
     </div>
 </div>
+
+<script>
+(function () {
+    var btn = document.querySelector('[data-copy-target]');
+    if (!btn) { return; }
+    btn.addEventListener('click', function () {
+        var target = document.getElementById(btn.getAttribute('data-copy-target'));
+        if (!target) { return; }
+        var text = (target.textContent || '').trim();
+        var showCopied = function () {
+            var fb = document.querySelector('.copy-feedback');
+            if (!fb) { return; }
+            fb.hidden = false;
+            setTimeout(function () { fb.hidden = true; }, 1500);
+        };
+        var fallbackCopy = function () {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'absolute';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); showCopied(); } catch (e) { /* no-op */ }
+            document.body.removeChild(ta);
+        };
+        // Modern clipboard API (needs HTTPS/localhost); falls back otherwise.
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(showCopied, fallbackCopy);
+        } else {
+            fallbackCopy();
+        }
+    });
+})();
+</script>
