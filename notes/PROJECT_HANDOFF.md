@@ -1,11 +1,12 @@
 # **Settle Memorial UMC Website Modernization — Project Handoff**
 
-**Document version:** 3.0 **Date prepared:** June 6, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
+**Document version:** 3.1 **Date prepared:** June 8, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
 
 **Recent changes** (full history in `CHANGELOG.md`):
 
 | Ver | Date | Summary | More |
 | --- | --- | --- | --- |
+| 3.1 | 2026-06-08 | Content migration (#10): 3-tier nav + 21 draft pages, content seeds (link / welcome-info / Connect-ministry), nav-toggle fix, media Copy-link, wp-asset migration CLI | §7, §10, §17 |
 | 3.0 | 2026-06-06 | Media thumbnails + multi-image / drag-&-drop upload (#9) | §5, §7, §10 |
 | 2.9 | 2026-06-06 | Dashboard enrichment (#8b): role-aware cards + recent activity + quick actions | §7, §10 |
 | 2.8 | 2026-06-06 | Calendar display (#8a): spanning-bar month grid + list/day views + subscribe; phone-default list, wrapping titles, end-times | §7, §10 |
@@ -355,8 +356,8 @@ settle-private/                        ← Outside web root; not URL-accessible
 
 ### **Designed but not implemented in code**
 
-* ⏳ **Site search** (roadmap #12, new v2.0). A `/search` page over published pages + posts + staff. The live settleumc.com has a header search box; this restores parity. See §16.
-* ⏳ **settleumc.com missing features / content migration** (roadmap #13, new v2.0). Sermons, Watch/livestream, Give, worship bulletin, newsletter archive, employment/news, and the deep ministry pages (I'm New, Connect → Children/Preschool/PDO/Youth/Adult/Missions). Most are Pages-CRUD content; a few are small features or external links; two need client decisions (Sermons, Newsletter). Full mapping in §16.
+* ⏳ **Content migration / settleumc.com gap** (roadmap #10/#13). **In progress (v3.1):** the public nav was rebuilt as a **3-tier menu** and **21 pages** were created as **unpublished drafts** carrying migrated content — the welcome/info set (I'm New, Sundays, About, Directions & Parking, Weekly Schedule, Employment), the full **Connect** ministry tree (Children, Preschool, Parent's Day Out, Youth, Adult Ministries + Roadrunners, Missions + Mission Partners / Outreach / Faith Promises), and the **link pages** (Sermons, Watch, Give, Worship Bulletin, Newsletter) — all via idempotent **guarded-`UPDATE` content seeds** that only fill still-placeholder drafts. A one-time **`bin/migrate-wp-assets.php`** brings the pages' images and PDFs into the Media Library and rewires the links/embeds. **Remaining:** run that CLI **before DNS cutover** (the source URLs die at launch), review & **publish** the drafts, build the **old→new URL redirect map**, the **#10b** home-page design sub-pass, and the still-undone #13 items (Sermons categorisation, Watch/livestream embed, mobile smart-banner). The slideshow / staff-portrait / section-background imports are a separate pass. Full as-built detail in **§17**; client decisions in §16.
+* ⏳ **Site search** (roadmap #12, new v2.0). A `/search` page over published pages + posts + staff. The live settleumc.com has a header search box; this restores parity. Still deliberately deferred until content is populated. See §16.
 
 ### **Known design considerations not yet addressed**
 
@@ -513,14 +514,14 @@ Blog authors can now be created in the admin `/admin/users` UI (roadmap #5, ship
 | **8b** | **Dashboard "Welcome back" enrichment** | 0.5–1 day | New, from §2.1. Recent contacts, recent prayer requests, recent blog posts on the admin dashboard; optional most-used-pages stats (needs a tiny view counter). Low-risk quick win; models already exist. |
 | ~~9~~ | ~~**Media: thumbnail variants + multi-image / drag-&-drop upload**~~ | — | **DONE (v3.0).** ≤600px thumbnail per image (`media.thumbnail_filename`, migration `0005`, shared `Upload::makeThumbnail`/`thumbPath`); admin grid + editor picker (preview only) + blog cards consume it, full-size fallback on `NULL`; `Post::publishedList`/`publishedListByCategory` gained `featured_thumbnail`. `/admin/media` drag-and-drop multi-upload (per-file JSON endpoint `uploadAjax`, X-CSRF-Token header, progress/error), single-file form kept as no-JS fallback. `bin/thumbnail-backfill.php` for legacy images. No auth/role change. |
 | **9.5** | **Renovation follow-along** | 0.5 day | New, from §2.1. A way for the congregation to follow the upcoming renovation — a dedicated blog category + a landing page (rides the existing blog). **Time-sensitive** ("a few months out"); should land before work begins, so it may jump the queue. |
-| 10 | **Migration of existing content** | 1–2 days | Bulk-import current settleumc.com text + images. Overlaps with #13. **#10b (design sub-pass):** the §2.1 "more eye-catching home page" pass, building on #4c — wants a references conversation before scoping. |
+| 10 | **Migration of existing content** | in progress | **Underway (v3.1).** 3-tier nav + **21 draft pages** + content seeds (link / welcome-info / Connect-ministry, all guarded `UPDATE`s) shipped; **`bin/migrate-wp-assets.php`** built to import the pages' images/PDFs and rewire links. **Remaining:** run the asset CLI **pre-cutover**, review & **publish** the drafts, the **old→new redirect map**, and **#10b** (the "more eye-catching home page" sub-pass — wants a references conversation). Slideshow/staff/section-bg images are a separate pass. See §17. |
 | 11 | **Tests** | ongoing | PHPUnit for models/controllers; Playwright end-to-end. Commit the calendar + blog + home-render + audit + **rate-limiter (v2.7, 26 assertions)** + **calendar #8a (v2.8: 32-assertion data + 22-assertion render)** harnesses as a starting set. |
 | 13 | **settleumc.com missing features / content migration gap** | scoping | New (v2.0). Sermons, Watch/livestream, Give, bulletin, newsletter, employment, ministry pages. Mostly Pages content + a few small features; client decisions resolved in §16 (Sermons/Newsletter/Bulletin stay Constant Contact / YouTube links, but the pages should be more attractive — Sermons with Live / Traditional / Shout / Special-Services categories). |
 | 12 | **Site search** | 1 day | New (v2.0). `/search` over published pages + posts + staff (MySQL `LIKE` or FULLTEXT). Restores the header search the live site has. **Deliberately deferred until content is populated** (after #10/#13). See §16. |
 | **12b** | **Searchable history page + photo archive** | scoping | New, from §2.1. Digitize the two church-history books + new historical material and old member/church photos, all **searchable**. Depends on **#12 (search)**, **#9 (thumbnails)**, and **#10 (content)** — so it sits after those. |
 | **14** | **User help document** | 1 day | New, from §2.1. A user guide as a printable **PDF** and as **HTML** pages, with deep links from admin functions to the relevant section. Scheduled **near launch** (after features freeze) so it doesn't go stale. |
 
-**Recommended sequence (updated v3.0, per owner):** the contractual scope, the Settings/Branding UI (#4), the home-page design pass (#4c), the **calendar feature incl. the [hide] tag + override editor (#4b)**, **user management (#5)**, **self-service password reset (#6b)**, **audit-log viewer (#7)**, **login rate-limiting (#8)**, the **calendar display enhancements (#8a)**, the **dashboard enrichment (#8b)**, and **media thumbnails + multi-image upload (#9)** are all done. Next is **#9.5 renovation follow-along** *if* its start date is near (time-sensitive — a blog category + a progress landing page; now gets light thumbnail cards for free), otherwise **content migration (#10, incl. the #10b home-page design sub-pass) + the settleumc.com gap items (#13)**. **Site search (#12) stays deliberately deferred** until the site is fully populated, after which the **searchable history page (#12b)** can build on it. The **user help doc (#14)** and a pre-launch checklist come last, before DNS cutover. (#11 tests is ongoing.) Full per-version detail for any item lives in `CHANGELOG.md`.
+**Recommended sequence (updated v3.1, per owner):** the contractual scope, the Settings/Branding UI (#4), the home-page design pass (#4c), the **calendar feature incl. the [hide] tag + override editor (#4b)**, **user management (#5)**, **self-service password reset (#6b)**, **audit-log viewer (#7)**, **login rate-limiting (#8)**, the **calendar display enhancements (#8a)**, the **dashboard enrichment (#8b)**, and **media thumbnails + multi-image upload (#9)** are all done. **Content migration (#10) is now underway (v3.1)** — the 3-tier nav, 21 draft pages, the content seeds, and the wp-asset migration CLI are built; what remains is to **run `bin/migrate-wp-assets.php` before cutover, review & publish the drafts, and build the old→new redirect map**, plus the **#10b** home-page design sub-pass and the **#13** gap items. **#9.5 renovation follow-along** still jumps ahead if its start date is near (time-sensitive — a blog category + a progress landing page; gets light thumbnail cards for free). **Site search (#12) stays deliberately deferred** until the site is fully populated, after which the **searchable history page (#12b)** can build on it. The **user help doc (#14)** and a pre-launch checklist come last, before DNS cutover. (#11 tests is ongoing.) Full per-version detail for any item lives in `CHANGELOG.md`.
 
 ---
 
@@ -703,3 +704,63 @@ The audit viewer's action **prefix** filter (`action LIKE 'user.%'`) first reach
 
 ### **13.16 `str_replace` on a method tail can eat the next method's brace; prefer heredoc/line-splice for big blocks (NEW v2.8)**
 Twice now, replacing a *trailing* block of a class (e.g. adding methods after the last existing one) via a single `str_replace` whose `old_str` ended at the class's closing `}` accidentally consumed the **preceding** method's `return …;` + closing brace, producing an "unexpected `public`/function" parse error a few lines below the edit. Two rules: (1) when appending methods, anchor `old_str` on a *complete* preceding method (include its full body **and** its closing brace in both `old_str` and `new_str`) rather than splicing at the bare class-closing `}`; or splice by line number (`head`/`tail` around a temp file). (2) For large PHP blocks containing `\DateTime`, `usort` closures, etc., write the block to a temp file with a **quoted heredoc** (`<< 'EOF'`) and line-splice it in — `str_replace` round-trips through JSON escaping and a stray `\` (e.g. `\DateTime`) is easy to get wrong; a quoted heredoc preserves backslashes literally and avoids the escaping guesswork. Both are cheap; both prevent a parse error that only shows up at lint time. (Related: §13.4 already prefers full-file replacement over `sed -i`.)
+
+### **13.17 A later equal-specificity CSS rule wins — the mobile nav toggle showed at all widths (NEW v3.1)**
+After the 3-tier menu went in, the header's hamburger / "Menu" toggle label was visible at **every** viewport width, not just on mobile. The cause was pure CSS **source order**: a desktop rule hid it (`.site-nav-toggle-label { display: none }`) *earlier* in `theme.css`, but a later base rule `.site-nav-toggle-label { display: inline-flex }` re-showed it — and at **equal specificity the last declaration wins**, so the unconditional rule overrode the media-query hide regardless of viewport. **Fix / rule:** move the hide into the **later** `@media (min-width: 1024px)` block so source order favors it (done in v2a's fix), rather than raising specificity or reaching for `!important`. When a media-query rule "doesn't take," look for a later same-specificity base rule before anything else. CSS/template only.
+
+### **13.18 `Upload::handle()` is HTTP-upload-only — a CLI importer reuses the public bits and mirrors the rest (NEW v3.1)**
+The content-migration asset importer (`bin/migrate-wp-assets.php`, §17) needed to store downloaded files exactly like an admin upload. `\Settle\Upload::handle()` **can't be called from CLI** — it gates on `is_uploaded_file()` and finishes with `move_uploaded_file()`, both of which only accept a genuine HTTP upload — and `maybeResize()` is `private`. So the importer **reuses the public surface** (`Upload::makeThumbnail()` / `Upload::thumbPath()` for the 600px thumbnail, and `Model\Media::create()` for the row) and **re-implements only the >2000px down-scale**, mirroring `maybeResize`'s GD calls and the JPEG/PNG/WebP quality constants. **Rule:** keep those mirrored constants in sync with `Upload`; if a future task needs the full store path from CLI, the cleaner fix is to extract a public `Upload::storeFromPath()` that both `handle()` and the CLI call (deliberately not done in v3.1 to avoid touching the hot upload path).
+
+---
+
+## **17\. Content Migration (#10) — as-built (NEW v3.1)**
+
+The bulk import of settleumc.com content. This section is the living record of how the new site's pages are populated; the per-batch narrative is in `CHANGELOG.md` (v3.1).
+
+### **17.1 Page & menu model (confirmed facts)**
+* **Public pages serve at `/page/{slug}`.** The router's `{param}` compiles to `([^/]+)`, i.e. **a single path segment** — so every slug is **flat and hyphenated** (`mission-partners`, not `connect/missions/partners`). Hierarchy is presentational only.
+* **Navigation is data-driven** via `menu_items` (the v1.7 system, extended to **3 tiers** this pass — see §17.3). The page's own slug has nothing to do with its place in the menu tree.
+* **`Page` (model + CRUD) uses only** `slug, title, body_html, meta_description, show_in_nav, is_published, updated_by`. The schema's `parent_id` / `hero_media_id` / `menu_order` columns are **not read** by the page code — don't rely on them for nav or heroes.
+* **Body renders in `<article class="prose">`** (`templates/public/page.php`); `body_html` is the one trusted, unescaped column (admin/TinyMCE-authored).
+* **Content CTAs** use the theme's `.btn` (solid) and `.btn--ghost` (outline) classes; both already exist in `theme.css`.
+* **Email convention holds in body content too:** ministry contacts route to `/staff` or `/contact` rather than embedding a raw `mailto:` (anti-harvesting, §3.5). Recoverable names are used by name; addresses are not.
+* **`media.filename` → URL** is `'/uploads/' . ltrim($filename, '/')` with **no url-encoding** (§13.12); the same rule governs anything the migration embeds.
+
+### **17.2 The guarded-`UPDATE` content-seed pattern**
+Page **structure** (the 21 rows) is created once by `sql/seed_pages.sql` as **unpublished drafts** whose body is a placeholder containing the sentinel `Draft — content to be added` (em-dash U+2014). Each **content** seed then fills pages with:
+```
+UPDATE pages SET body_html = '…', meta_description = '…'
+ WHERE slug = 'X' AND body_html LIKE '%Draft — content to be added%';
+```
+The `AND body_html LIKE '%…%'` guard means a seed **only fills a still-placeholder draft** — it never clobbers a page you've since edited or published, and it's **safe to re-run**. Pages **stay drafts** (`is_published` untouched) so every page is reviewed in `/admin/pages` before going live. Apostrophes are SQL-escaped by doubling (`Children''s`); every seed is validated against an in-memory **SQLite** harness (running the real `seed_pages.sql` first, then the content seed) with an explicit assertion count before packaging — the harness also catches any mis-escaped quote because a bad string fails the SQL parse.
+
+### **17.3 Deliverables (this pass)**
+* **3-tier menu support** — `theme.css` (nested-flyout CSS), `MenuController` (depth guard: `MAX_TIERS = 3`, `tierOf()` / `subtreeHeight()` via a `depthError`), `MenuItem`, `templates/admin/menu/index.php` (recursive render + JS), `templates/layout/public.php` (recursive public renderers).
+* **`sql/seed_pages.sql`** — 21 draft pages + idempotent 3-tier menu wiring matching the live nav.
+* **Nav-toggle source-order fix** (`theme.css`) — see §13.17.
+* **`sql/seed_pages_content_2a.sql`** — the 5 **link pages** (Give, Watch, Sermons, Worship Bulletin, Newsletter).
+* **Media "Copy link" button** (`templates/admin/media/edit.php`) — clipboard copy of a media item's public URL (clipboard API + `execCommand` fallback), so swapping URLs into page bodies isn't hand-typing hex filenames.
+* **`sql/seed_pages_content_2b1.sql`** — the 6 **welcome/info pages** (I'm New, Sundays, About, Directions & Parking, Weekly Schedule, Employment).
+* **`sql/seed_pages_content_2b2.sql`** — the 10 **Connect ministry pages** (Children, Settle Preschool, Parent's Day Out, Youth, Adult Ministries, The Roadrunners, Missions, Mission Partners, Mission Outreach, Faith Promises).
+* **`bin/migrate-wp-assets.php`** — the one-time asset importer (§17.4).
+
+Harness coverage: Batch 1 = 43 assertions, 2a = 33, Copy-link render = 7, 2b-1 = 28, 2b-2 = 40, asset-CLI helpers = 15. All passing; `php -l` (and `node --check` where JS changed) clean.
+
+### **17.4 The asset-migration CLI (`bin/migrate-wp-assets.php`)**
+A one-time server-shell tool (same family as `calendar-sync` / `thumbnail-backfill`). For each image/PDF the migrated pages still reference on the **old** WordPress site, it downloads it (curl, best-effort), stores it under `uploads/YYYY/MM/<hex>.<ext>` with the **`Upload` conventions** (≤2000px down-scale mirrored from `maybeResize`, 600px thumbnail via the real `Upload::makeThumbnail()`, allowed jpg/png/gif/webp/pdf, ≤10 MB), inserts a `media` row via `Model\Media::create()` (owner = first active admin), and **rewires the page**: PDFs get their wp-content URL swapped for the new local URL (link text kept); images are embedded by **replacing the unique `<!-- TODO image pass … -->` comment** I left as an anchor (Employment's banner is prepended — no anchor). **Idempotent:** an asset already in the Library (matched on `original_name`) isn't re-downloaded, and a page already rewired isn't touched (old URL gone / new URL already present), so nothing doubles. **Must run before DNS cutover** — the source URLs only exist while WordPress is live. See §13.18 for why it can't call `Upload::handle()`.
+
+### **17.5 Decisions & flagged discrepancies (carried for the owner)**
+* **201 vs 202 E. 4th St** — the Directions page (and its Google Maps pin) say **201**; the footer/settings say **202** (the §4-resolved value). Kept faithful to each source; **reconcile which goes where.**
+* **Youth page** — the live page named a youth director (Cindy Palacios) who, per the §4 resolved staff data, is **no longer staff**, plus a flyer PDF with her email in the filename. **Both dropped;** the contact routes to the Staff directory (Jeff Keeley / Wesley Marcum). Add the current director's details when ready.
+* **Obfuscated ministry emails** on several live pages were unrecoverable → routed to `/staff` or `/contact`. Aimee Keith is named on PDO (current staff).
+* **Two Guest Survey links** existed on the live I'm New vs Sundays pages; both migrated pages use the I'm New one — **confirm the current link.**
+* **wp-content re-host:** the asset CLI handles the page images + job/registration PDFs. **The Give page's Legacy-Giving-Guide.pdf was uploaded manually by the owner** — the CLI skips it; point that one link at the manual upload via the Media "Copy link" button.
+* **Flyer images** (preschool info-sheet, "is hiring" banner) migrated **faithfully** per owner instruction, though they bake text into an image (consider real text later).
+* **Slideshow (21) / staff portraits (10) / section backgrounds (3)** are **out of scope for this pass** — they live in the Slideshow/Staff admin surfaces and are the next image pass.
+
+### **17.6 Remaining for #10**
+1. **Run `bin/migrate-wp-assets.php`** on the server **before cutover**.
+2. **Review & publish** the 21 drafts in `/admin/pages` (they ship unpublished by design).
+3. **Old→new URL redirect map** for cutover (owner-approved; next session).
+4. **#10b** the "more eye-catching home page" design sub-pass (wants a references conversation).
+5. The **slideshow/staff/section-bg** image import pass, and the remaining **#13** gap items (Sermons categorisation, Watch/livestream embed, mobile smart-banner).

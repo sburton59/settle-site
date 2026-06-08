@@ -1,88 +1,99 @@
 # NEXT SESSION — Settle Memorial UMC
 
-**Read `PROJECT_HANDOFF.md` (v3.0) first**, then clone fresh per §13.7
+**Read `PROJECT_HANDOFF.md` (v3.1) first**, then clone fresh per §13.7
 (`git clone --depth 1`, never the raw CDN) and cross-check sizes against
 `urls-details.txt` before proposing changes.
 
-> Doc structure unchanged since v2.9: living state in `PROJECT_HANDOFF.md`,
-> full per-version narrative in `CHANGELOG.md` (newest first).
+> Doc structure unchanged: living state in `PROJECT_HANDOFF.md`, full
+> per-version narrative in `CHANGELOG.md` (newest first). Content-migration
+> as-built detail is now **§17**.
 
 ---
 
-## Just shipped (v3.0): Roadmap #9 — Media thumbnails + multi-image upload
+## Just shipped (v3.1): Roadmap #10 — content migration (in progress)
 
-`settle-roadmap9-media-thumbnails.zip`. Two bundled deltas on the Media surface:
+Delivered as small, separately-validated batches; all pages staged as
+**unpublished drafts** for review (never auto-published):
 
-- **Thumbnails.** `\Settle\Upload` writes a <=600px long-edge thumbnail next to
-  each uploaded image and records it in a new `media.thumbnail_filename` column
-  (migration `0005`). The admin grid, the TinyMCE picker (preview only — the
-  inserted URL stays full-size), and public blog cards render the thumbnail;
-  `NULL` falls back to full-size (PDFs / pre-#9 rows unaffected). `Post`'s two
-  public listing queries gained `featured_thumbnail`. New
-  `bin/thumbnail-backfill.php` (idempotent) generates thumbnails for existing
-  images — run once after the migration.
-- **Multi / drag-and-drop upload.** `/admin/media` gains a drop zone (multi-file,
-  per-file progress + per-file error) posting one file per request to a new JSON
-  endpoint `POST /admin/media/upload-ajax` (`MediaController::uploadAjax`,
-  X-CSRF-Token header). The single-file form is retained as the no-JS fallback.
+- **3-tier nav** + `sql/seed_pages.sql` — 21 draft pages + idempotent menu wiring.
+- **Content seeds** (guarded `UPDATE`s; only fill still-placeholder drafts; safe
+  to re-run): `seed_pages_content_2a.sql` (5 link pages), `…_2b1.sql` (6
+  welcome/info pages), `…_2b2.sql` (10 Connect ministry pages).
+- **`bin/migrate-wp-assets.php`** — one-time CLI: imports the pages' wp-content
+  images/PDFs into the Media Library and rewires links/embeds. **Run BEFORE
+  cutover.**
+- **Media "Copy link"** button + a **nav-toggle CSS source-order fix**.
 
-1 new route (hand-edit), 1 migration, 1 backfill CLI, 10 files REPLACED.
-Validated by a 29-assertion harness (GD thumbnail logic + SQLite Media model +
-admin-grid/blog-card render), zero PHP notices, `php -l` + `node --check` clean.
-Deploy: drop files → route hand-edit → push → `git pull` → apply `0005` →
-run the backfill once.
+Harnesses: 43 / 33 / 7 / 28 / 40 / 15 assertions, all passing. See HANDOFF §17.
+
+### Owner action items from v3.1 (not code — do on the server / in admin)
+1. Run each content seed once in phpMyAdmin (if not already): `seed_pages.sql`
+   then `seed_pages_content_2a / _2b1 / _2b2`.
+2. **Run `php settle-private/bin/migrate-wp-assets.php` on the server BEFORE DNS
+   cutover** (the old wp-content URLs die at launch).
+3. **Review & publish** the 21 drafts in `/admin/pages`.
+4. Point the **Give** page's Legacy-Giving-Guide link at your manual upload
+   (Media → Copy link). Reconcile **201 vs 202** E. 4th. Confirm the current
+   **Guest Survey** link. Add the current **Youth** director's contact.
 
 ---
 
 ## Next up — owner's call
 
-**#9.5 Renovation follow-along (time-sensitive — confirm timing first).**
-"Starting a renovation project in a few months… a way the congregation can
-follow the work." Likely shape: a dedicated **blog category** ("Renovation")
-plus a **landing page** pulling that category's posts (progress updates + photos
-via the Media Library — which now produces thumbnails, so the landing page gets
-light cards for free). Mostly reuses the blog + media surfaces. **Ask Steve at
-session start whether the renovation start is near enough to do this now;** if
-so it jumps ahead of #10.
+**Default: the old→new URL redirect map (#10 finish).** Already approved in
+principle. Goal: every live settleumc.com path (e.g. `/new/`, `/adult/`,
+`/mission-service/`, `/sermon-series/`, `/this-sundays-bulletin/`, the `/news/`
+employment URL, the deep `/connect/...` tree) 301s to its new home
+(`/page/{slug}`, `/calendar`, `/blog`, external link, or a deliberate drop) so
+inbound links/SEO survive cutover. Propose the mapping table + the mechanism
+(likely `.htaccess` rules or a small router redirect table) before building.
 
-Otherwise → **#10 Migration of existing content** (bulk-import current
-settleumc.com text + images via Pages CRUD) **+ #10b home-page design sub-pass**
-(the "more eye-catching home page" pass, building on #4c — wants a references
-conversation before scoping) **+ #13 settleumc.com gap items** (Sermons with
-Live/Traditional/Shout/Special-Services categories, Watch/livestream, Give link,
-bulletin, newsletter, ministry pages — §16).
+Alternatives if you'd rather:
+- **#9.5 renovation follow-along** — jumps ahead if the project start is near
+  (blog category + a progress landing page; gets thumbnail cards for free).
+- **#10b** the "more eye-catching home page" design sub-pass — wants a
+  references conversation first.
+- **Slideshow / staff-portrait / section-background image import** — the
+  separate image pass deferred out of v3.1 (these live in the Slideshow/Staff
+  admin surfaces, not page bodies).
 
-Either is **propose-first**: read current source, surface open questions, propose
-a full plan, wait for "go".
+Either way: **propose-first** — read current source, surface open questions,
+propose a full plan, wait for "go".
 
 ---
 
 ## Roadmap tail (from §10)
-#9.5 / #10 (+#10b) + #13 → #12 site search (deferred until content is populated)
+finish #10 (run asset CLI → publish drafts → redirect map → #10b) + #13 gap
+items → #9.5 (if timely) → #12 site search (deferred until content populated)
 → #12b searchable history page + photo archive → #14 user help doc → pre-launch
-checklist → DNS cutover. #11 tests is ongoing (harness set now: calendar, blog,
-home-render, audit, rate-limiter, calendar #8a, dashboard #8b, **media #9**).
+checklist → DNS cutover. #11 tests ongoing.
 
 ## Workflow reminders
 - **Proposal-first**; code only after "approve / yes / go".
 - Deliver one repo-mirroring **zip + MANIFEST.txt**; `php -l` clean; SQLite/
-  render harness with an assertion count before packaging.
+  render harness with an assertion count before packaging. Put a loud ⚠️ SQL
+  reminder in the MANIFEST (seeds are easy to forget to run).
 - **Whole-file replacement**; hand-edit snippets only for routes / sidebar.
-- Windows case-collision (§8.2/§13): distinct flat filenames, prefixes,
-  `core.ignorecase false`.
-- Time discipline (§13.8): PHP-bound `:now`/`:today`, never SQL `NOW()`.
-- No new `:root` brand values (§9): reuse existing CSS custom properties.
-- `media.filename` → URL is `/uploads/` + `ltrim`, **no url-encoding** (§13.12);
-  the new `thumbnail_filename` follows the same rule.
-- For large PHP blocks, prefer a quoted-heredoc + line-splice over `str_replace`
-  (§13.16).
+- Content seeds: **guarded `UPDATE`** (only fill placeholder drafts), apostrophes
+  doubled, pages left as drafts. Pages serve at **`/page/{slug}`** — slugs are
+  **flat/hyphenated** (single path segment).
+- Windows case-collision (§8.2/§13): distinct flat filenames, `core.ignorecase
+  false`.
+- Time discipline (§13.8): PHP-bound `:now`, never SQL `NOW()`.
+- No new `:root` brand values (§9); reuse existing CSS custom properties; watch
+  CSS source order (§13.17).
+- `media.filename` → URL is `/uploads/` + `ltrim`, **no url-encoding** (§13.12).
+- A CLI can't call `Upload::handle()` (HTTP-only) — reuse the public bits, mirror
+  the rest (§13.18).
 - **Session close:** update `PROJECT_HANDOFF.md`, add the version's entry to
-  `CHANGELOG.md`, and write the next `NEXT_SESSION.md`.
+  `CHANGELOG.md`, write the next `NEXT_SESSION.md`.
 
 ## Pre-launch (carry-forward)
-- `app.base_url` and `google_calendar.calendar_id` must reflect the live host
-  at DNS cutover (§8.7, §13.14).
+- Run `bin/migrate-wp-assets.php` (pre-cutover) and `bin/thumbnail-backfill.php`
+  against live uploads if content is migrated before thumbnails are backfilled.
+- `app.base_url` and `google_calendar.calendar_id` must reflect the live host at
+  DNS cutover (§8.7, §13.14).
+- Publish the migrated draft pages; confirm every live-site nav destination has
+  a home (page, link, or a deliberate drop) — tie this to the redirect map.
 - Repo goes private near completion → switch to the paste-the-session's-files
   workflow.
-- Run `bin/thumbnail-backfill.php` against the live uploads if content is
-  migrated before thumbnails are backfilled.
