@@ -412,7 +412,6 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 
 @media (min-width: 1024px) {
   .site-nav { display: block; }
-  .site-nav-toggle, .site-nav-toggle-label { display: none; }
 }
 
 /* --- Mobile nav (CSS-only, no JS) --- */
@@ -493,6 +492,11 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 }
 
 @media (min-width: 1024px) {
+  /* Desktop: the inline nav is visible, so hide the mobile toggle (hamburger
+     + "Menu") and the drawer. These sit AFTER the base .site-nav-toggle-label
+     rule, so source order makes the hide win — the earlier copy was overridden
+     and the toggle showed at every width. */
+  .site-nav-toggle, .site-nav-toggle-label { display: none; }
   .site-nav-mobile { display: none !important; }
 }
 
