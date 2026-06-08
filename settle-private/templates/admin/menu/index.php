@@ -9,7 +9,7 @@
 use Settle\Csrf;
 
 // Recursive renderer for menu items as nested sortable lists.
-$renderList = static function (array $items, ?int $parentId, Closure $e) use (&$renderList): string {
+$renderList = static function (array $items, ?int $parentId, Closure $e, int $depth = 0) use (&$renderList): string {
     $listClass = $parentId === null ? 'menu-admin__list menu-admin__list--root' : 'menu-admin__list menu-admin__sublist';
     $listAttr  = $parentId === null ? '' : ' data-parent-id="' . (int)$parentId . '"';
 
@@ -40,11 +40,12 @@ $renderList = static function (array $items, ?int $parentId, Closure $e) use (&$
         $out .= '    </span>';
         $out .= '  </div>';
 
-        // Nested list — only at the root level (depth 1 only, matching the design).
-        // We always render the sublist container so SortableJS has a drop target,
-        // even when empty.
-        if ($parentId === null) {
-            $out .= $renderList($item['children'], $id, $e);
+        // Nested list — rendered down to a third tier (depth 0,1; the
+        // tier-3 sublist at depth 2 is the deepest the design allows).
+        // We always render the sublist container so SortableJS has a drop
+        // target, even when empty.
+        if ($depth < 2) {
+            $out .= $renderList($item['children'], $id, $e, $depth + 1);
         }
 
         $out .= '</li>';
@@ -123,26 +124,26 @@ $renderList = static function (array $items, ?int $parentId, Closure $e) use (&$
   var lists = document.querySelectorAll('.menu-admin__list');
 
   function gatherItems() {
-    // Walk the root list, then each sublist, building the flat
-    // [{id, parent_id, sort_order}, ...] triples.
+    // Recursively walk the rendered lists (root + nested sublists),
+    // building flat [{id, parent_id, sort_order}, ...] triples that
+    // capture the current nesting down to the third tier.
     var items = [];
 
     var root = document.querySelector('.menu-admin__list--root');
     if (!root) return items;
 
-    Array.prototype.forEach.call(root.children, function (li, idx) {
-      var id = parseInt(li.getAttribute('data-id'), 10);
-      items.push({ id: id, parent_id: null, sort_order: (idx + 1) * 10 });
-
-      // Check for a sublist inside this li.
-      var sub = li.querySelector(':scope > .menu-admin__sublist');
-      if (sub) {
-        Array.prototype.forEach.call(sub.children, function (childLi, childIdx) {
-          var childId = parseInt(childLi.getAttribute('data-id'), 10);
-          items.push({ id: childId, parent_id: id, sort_order: (childIdx + 1) * 10 });
-        });
-      }
-    });
+    function walk(ul, parentId) {
+      Array.prototype.forEach.call(ul.children, function (li, idx) {
+        var id = parseInt(li.getAttribute('data-id'), 10);
+        if (isNaN(id)) return;
+        items.push({ id: id, parent_id: parentId, sort_order: (idx + 1) * 10 });
+        var sub = li.querySelector(':scope > .menu-admin__sublist');
+        if (sub) {
+          walk(sub, id);
+        }
+      });
+    }
+    walk(root, null);
     return items;
   }
 
@@ -168,28 +169,36 @@ $renderList = static function (array $items, ?int $parentId, Closure $e) use (&$
   }
 
   // Attach SortableJS to every list. The shared `group` name allows
-  // drags between root and sublists; the `pull/put` settings limit
-  // nesting depth to one level (children can move within a parent's
-  // sublist or back to root, but not into another sublist).
+  // drags between root and sublists; the `put` rule caps nesting at
+  // three tiers (top level + two nested levels).
   Array.prototype.forEach.call(lists, function (list) {
     var isRoot = list.classList.contains('menu-admin__list--root');
     new Sortable(list, {
       group: {
         name: 'menu-items',
-        // Sublists accept items from root only — they can't pull items
-        // out of other sublists. Root accepts items from any sublist
-        // and from itself. This enforces the one-level-nesting cap.
         pull: true,
         put: function (to, from, dragged) {
-          // Allow drop if target is root, or target is a sublist AND
-          // the dragged item has no children of its own (would create
-          // depth 2).
-          if (to.el.classList.contains('menu-admin__list--root')) return true;
-          var hasChildSublist = dragged.querySelector('.menu-admin__sublist');
-          if (hasChildSublist && hasChildSublist.children.length > 0) {
-            return false;
+          // Permit the drop only if it keeps the menu within three tiers.
+          // List depth: root = 0, first sublist = 1, second sublist = 2.
+          // An item dropped into a list of depth d becomes tier (d + 1);
+          // its own subtree adds `height` more tiers. Require
+          // (d + 1 + height) <= 3.
+          var d = 0, el = to.el;
+          while (el) {
+            if (el.classList && el.classList.contains('menu-admin__sublist')) { d++; }
+            el = el.parentElement;
           }
-          return true;
+          function height(li) {
+            var sub = li.querySelector(':scope > .menu-admin__sublist');
+            if (!sub) { return 0; }
+            var max = 0;
+            Array.prototype.forEach.call(sub.children, function (c) {
+              var h = 1 + height(c);
+              if (h > max) { max = h; }
+            });
+            return max;
+          }
+          return (d + 1 + height(dragged)) <= 3;
         }
       },
       handle: '.menu-admin__grip',

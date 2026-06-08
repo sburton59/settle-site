@@ -58,7 +58,9 @@ $renderDesktopMenu = static function (array $items, Closure $e, int $depth = 0) 
             // Parent-only items (no URL) render as non-link spans.
             $out .= '<span class="site-nav__link" tabindex="0">' . $e($label) . '</span>';
         }
-        if ($hasChildren && $depth === 0) {
+        // Render nested submenus down to a third tier (depth 0,1,2).
+        // A fourth tier is neither styled nor reachable in the admin UI.
+        if ($hasChildren && $depth < 2) {
             $out .= $renderDesktopMenu($item['children'], $e, $depth + 1);
         }
         $out .= '</li>';
@@ -67,12 +69,15 @@ $renderDesktopMenu = static function (array $items, Closure $e, int $depth = 0) 
     return $out;
 };
 
-// Recursive nav renderer for the mobile drawer (flatter; no hover submenu).
-$renderMobileMenu = static function (array $items, Closure $e) use (&$renderMobileMenu): string {
+// Recursive nav renderer for the mobile drawer (flatter; no hover submenu —
+// nested levels render as progressively indented sublists). Supports three
+// tiers (depth 0,1,2) to match the desktop menu.
+$renderMobileMenu = static function (array $items, Closure $e, int $depth = 0) use (&$renderMobileMenu): string {
     if ($items === []) {
         return '';
     }
-    $out = '<ul class="site-nav-mobile__list">';
+    $listClass = $depth === 0 ? 'site-nav-mobile__list' : 'site-nav-mobile__sublist';
+    $out = '<ul class="' . $listClass . '">';
     foreach ($items as $item) {
         $url   = (string) ($item['url'] ?? '');
         $label = (string) ($item['label'] ?? '');
@@ -85,23 +90,8 @@ $renderMobileMenu = static function (array $items, Closure $e) use (&$renderMobi
         } else {
             $out .= '<span class="site-nav-mobile__link">' . $e($label) . '</span>';
         }
-        if (!empty($item['children'])) {
-            $sub = '<ul class="site-nav-mobile__sublist">';
-            foreach ($item['children'] as $child) {
-                $curl   = (string) ($child['url'] ?? '');
-                $clabel = (string) ($child['label'] ?? '');
-                $ctarget = ($child['target'] ?? '_self') === '_blank' ? ' target="_blank" rel="noopener"' : '';
-                $sub .= '<li>';
-                if ($curl !== '') {
-                    $sub .= '<a class="site-nav-mobile__link" href="' . $e($curl) . '"' . $ctarget . '>'
-                          . $e($clabel) . '</a>';
-                } else {
-                    $sub .= '<span class="site-nav-mobile__link">' . $e($clabel) . '</span>';
-                }
-                $sub .= '</li>';
-            }
-            $sub .= '</ul>';
-            $out .= $sub;
+        if (!empty($item['children']) && $depth < 2) {
+            $out .= $renderMobileMenu($item['children'], $e, $depth + 1);
         }
         $out .= '</li>';
     }

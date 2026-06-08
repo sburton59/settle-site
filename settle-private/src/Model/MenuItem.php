@@ -236,8 +236,8 @@ final class MenuItem
      * reparent operation does not create a cycle.
      *
      * One query for direct children at each level; two or three loop
-     * iterations are typical for a real menu (depth is capped at one
-     * level by the UI, but this function does not assume that).
+     * iterations are typical for a real menu (nesting is capped at three
+     * tiers by the UI, but this function does not assume that).
      *
      * @return array<int, int>
      */
@@ -267,6 +267,65 @@ final class MenuItem
         }
 
         return $found;
+    }
+
+    /**
+     * 1-based tier of an item within the menu tree: a top-level item is
+     * tier 1, its child tier 2, a grandchild tier 3. Returns 0 if the
+     * item is not found. Guards against accidental parent cycles.
+     */
+    public static function tierOf(int $id): int
+    {
+        $byId = [];
+        foreach (self::findAll() as $row) {
+            $byId[(int) $row['id']] = $row;
+        }
+        if (!isset($byId[$id])) {
+            return 0;
+        }
+
+        $tier = 1;
+        $seen = [];
+        $pid  = $byId[$id]['parent_id'] !== null ? (int) $byId[$id]['parent_id'] : null;
+        while ($pid !== null) {
+            if (isset($seen[$pid]) || !isset($byId[$pid])) {
+                break; // cycle or dangling parent — stop counting
+            }
+            $seen[$pid] = true;
+            $tier++;
+            $pid = $byId[$pid]['parent_id'] !== null ? (int) $byId[$pid]['parent_id'] : null;
+        }
+        return $tier;
+    }
+
+    /**
+     * Height of the subtree rooted at $id, measured in extra tiers below
+     * it: 0 for a leaf, 1 if it has children, 2 if it has grandchildren.
+     * Used to check whether reparenting a node would exceed the tier cap.
+     */
+    public static function subtreeHeight(int $id): int
+    {
+        $byParent = [];
+        foreach (self::findAll() as $row) {
+            $pid = $row['parent_id'] !== null ? (int) $row['parent_id'] : 0;
+            $byParent[$pid][] = (int) $row['id'];
+        }
+
+        $height = static function (int $node, int $guard) use (&$height, $byParent): int {
+            if ($guard > 50 || empty($byParent[$node])) {
+                return 0;
+            }
+            $max = 0;
+            foreach ($byParent[$node] as $child) {
+                $h = 1 + $height($child, $guard + 1);
+                if ($h > $max) {
+                    $max = $h;
+                }
+            }
+            return $max;
+        };
+
+        return $height($id, 0);
     }
 
     /**

@@ -25,6 +25,9 @@ use Settle\Model\Page;
  */
 final class MenuController extends BaseController
 {
+    /** Maximum menu nesting: top level + two nested tiers. */
+    private const MAX_TIERS = 3;
+
     /**
      * GET /admin/menu — list with drag-to-reorder.
      */
@@ -59,6 +62,11 @@ final class MenuController extends BaseController
     {
         $data   = $this->readForm();
         $errors = $this->validate($data);
+
+        if (!isset($errors['parent_id'])
+            && ($depthErr = $this->depthError($data['parent_id'], 0)) !== null) {
+            $errors['parent_id'] = $depthErr;
+        }
 
         if ($errors) {
             $this->render('admin/menu/edit', [
@@ -139,6 +147,12 @@ final class MenuController extends BaseController
                     $errors['parent_id'] = 'Cannot move this item under one of its descendants.';
                 }
             }
+        }
+
+        // Tier-depth guard (after the cycle check, so we don't shadow it).
+        if (!isset($errors['parent_id'])
+            && ($depthErr = $this->depthError($newParent, $id)) !== null) {
+            $errors['parent_id'] = $depthErr;
         }
 
         if ($errors) {
@@ -265,6 +279,32 @@ final class MenuController extends BaseController
 
         $userId = (int)($_SESSION['user_id'] ?? 0);
 
+        // Server-side tier-depth backstop: reject a payload that would
+        // nest any item deeper than MAX_TIERS, regardless of what the
+        // client JS permitted.
+        $parentOf = [];
+        foreach ($items as $row) {
+            $parentOf[$row['id']] = $row['parent_id'];
+        }
+        foreach ($items as $row) {
+            $tier = 1;
+            $pid  = $row['parent_id'];
+            $seen = [];
+            while ($pid !== null) {
+                if (isset($seen[$pid])) {
+                    break; // cycle guard
+                }
+                $seen[$pid] = true;
+                $tier++;
+                if ($tier > self::MAX_TIERS) {
+                    header('Content-Type: application/json', true, 422);
+                    echo json_encode(['error' => 'Menus can be at most three levels deep.']);
+                    return;
+                }
+                $pid = $parentOf[$pid] ?? null;
+            }
+        }
+
         try {
             MenuItem::reorder($items, $userId);
         } catch (\Throwable $e) {
@@ -373,6 +413,31 @@ final class MenuController extends BaseController
         }
 
         return $errors;
+    }
+
+    /**
+     * Returns an error message if placing the item identified by
+     * $movingId under $newParentId would push the menu past MAX_TIERS
+     * tiers, or null if the placement is allowed. For a brand-new item
+     * (no descendants yet) pass $movingId = 0.
+     *
+     * @param int|string|null $newParentId  Raw form value ('' / null = top level).
+     */
+    private function depthError(int|string|null $newParentId, int $movingId): ?string
+    {
+        if ($newParentId === null || $newParentId === '') {
+            return null; // top level — always tier 1
+        }
+        $parentTier = MenuItem::tierOf((int) $newParentId);
+        if ($parentTier === 0) {
+            return null; // unknown parent; existence/cycle handled elsewhere
+        }
+        $movedTier = $parentTier + 1;
+        $height    = $movingId > 0 ? MenuItem::subtreeHeight($movingId) : 0;
+        if ($movedTier + $height > self::MAX_TIERS) {
+            return 'Menus can be at most three levels deep. Pick a higher-level parent.';
+        }
+        return null;
     }
 
     /**

@@ -400,6 +400,16 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
   background: var(--bg-soft);
 }
 
+/* Third-tier submenu: fly out to the side of its (second-tier) parent
+   item rather than stacking below it. The existing hover/focus-within
+   rule above already toggles its display at any depth. */
+.site-nav__submenu .site-nav__submenu {
+  top: 0;
+  left: 100%;
+  transform: none;
+  margin-left: 0.25rem;
+}
+
 @media (min-width: 1024px) {
   .site-nav { display: block; }
   .site-nav-toggle, .site-nav-toggle-label { display: none; }
@@ -477,6 +487,9 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
   font-size: 0.78rem;
   letter-spacing: 0.1em;
   background: var(--bg-soft);
+}
+.site-nav-mobile__sublist .site-nav-mobile__sublist .site-nav-mobile__link {
+  padding-left: calc(var(--container-gutter) + 2.5rem);
 }
 
 @media (min-width: 1024px) {
