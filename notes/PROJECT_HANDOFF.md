@@ -62,11 +62,12 @@ These five capabilities are the contractual scope. **All five are now complete**
 ## **2.1 Extended Features**
 New features to explore, no particular order:
 
-* **Flesh out more useful Admin Dashboard "Welcome back" page with things like: notices of recent contacts, recent prayer requests, recent blog posts, stats of most used pages
-* **Multi image upload capability under Admin/Media, maybe a drag & drop function for multiple images.
+**All done, except page stats**  * **Flesh out more useful Admin Dashboard "Welcome back" page with things like: notices of recent contacts, recent prayer requests, recent blog posts, stats of most used pages 
+**All done**  * **Multi image upload capability under Admin/Media, maybe a drag & drop function for multiple images.
 * **A user help document both as a printable PDF and as HTML pages with links from Admin functions to the appropriate section of the help page.
+**All done**  * **Calendar entries should show start and stop times on both the Upcoming Events cards and the full calendar. The calendar page should also have a day view, a list view and a link to subscribe to the Google Calendar (see https://settleumc.com/calendar/month/) for an idea on how the month vew should look and https://settleumc.com/calendar/list/ for how the list view show look.
 * **Calendar entries should show start and stop times on both the Upcoming Events cards and the full calendar. The calendar page should also have a day view, a list view and a link to subscribe to the Google Calendar (see https://settleumc.com/calendar/month/) for an idea on how the month vew should look and https://settleumc.com/calendar/list/ for how the list view show look.
-* **More eye catching home page - See https://settleumc.com/
+**All done**  * **More eye catching home page - See https://settleumc.com/
 * **History page - I have 2 small books on the history of the church that I want to digital and put on the website as well as nay new historical information we come across. I want all of that to be searchable.  This would also be a place to put old pictures of the church and it's members.
 * **We'll be starting a renovation project in a few months. I'll want a way the congregation can follow the work.  
 
