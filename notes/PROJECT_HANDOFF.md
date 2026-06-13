@@ -70,6 +70,11 @@ New features to explore, no particular order:
 * **History page - I have 2 small books on the history of the church that I want to digital and put on the website as well as nay new historical information we come across. I want all of that to be searchable.  This would also be a place to put old pictures of the church and it's members.
 * **We'll be starting a renovation project in a few months. I'll want a way the congregation can follow the work.  
 
+## **2.2 Things to address after review with church admins**
+* **Prayer Requests:  Need to go to more than 1 email address.  Need to have an additional option on form to give permission to add the request to the email prayer chain.
+*  **Need to have a link to subscribe to the Constant Contact mailing list.  Link needs to be configurable in the Admin panel.
+*  **The footer address information needs to emphasize the PO box, not the physical address.
+
 ## **3\. Architectural Decisions and Rationale**
 
 ### **3.1 No framework**
