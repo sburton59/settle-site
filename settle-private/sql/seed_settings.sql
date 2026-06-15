@@ -56,6 +56,10 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('social_instagram',     'https://www.instagram.com/shoutatsettle/'),
 ('social_youtube',       'https://www.youtube.com/@settlememorialunitedmethod5839'),
 
+-- Mailing-list signup (Constant Contact). Blank until the church
+-- supplies the link; set via Admin → Settings → Social & apps.
+('newsletter_signup_url', ''),
+
 -- Mobile apps (existing presence; staying for now per handoff §11 item 10)
 ('app_ios_url',          'https://apps.apple.com/app/settle-umc/id1639009037'),
 ('app_android_url',      'https://play.google.com/store/apps/details?id=com.redpixelstudios.settleumc'),

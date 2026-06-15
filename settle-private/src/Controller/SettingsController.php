@@ -127,6 +127,8 @@ final class SettingsController extends BaseController
                  'default' => 'https://apps.apple.com/app/settle-umc/id1639009037'],
                 ['key' => 'app_android_url',  'label' => 'Android app', 'type' => 'url', 'max' => 500,
                  'default' => 'https://play.google.com/store/apps/details?id=com.redpixelstudios.settleumc'],
+                ['key' => 'newsletter_signup_url', 'label' => 'Mailing list signup', 'type' => 'url', 'max' => 500,
+                 'help' => 'Constant Contact (or similar) signup link. Shown as “Join our mailing list” in the footer; leave blank to hide it.'],
             ]],
 
             ['title' => 'Homepage',

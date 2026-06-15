@@ -37,6 +37,15 @@ $addressCityLine = trim($addressCity
     . ($addressState !== '' ? ', ' . $addressState : '')
     . ($addressZip !== '' ? ' ' . $addressZip : ''));
 
+// Physical (street) line for the footer — de-emphasised beneath the
+// mailing address. The church wants the P.O. Box leading (it's where
+// mail should go); the street address is kept as a smaller "visit us"
+// line below it.
+$addressLine1 = $s('church_address_line1');
+$visitLine = trim($addressLine1
+    . ($addressLine1 !== '' && $addressCityLine !== '' ? ', ' : '')
+    . $addressCityLine);
+
 // Recursive nav renderer for the desktop menu.
 $renderDesktopMenu = static function (array $items, Closure $e, int $depth = 0) use (&$renderDesktopMenu): string {
     if ($items === []) {
@@ -195,14 +204,11 @@ if ($brandOverrides !== []):
       <div>
         <div class="site-footer__brand-line"><?= $e($s('church_name')) ?></div>
         <address class="site-footer__address">
-          <?php if ($s('church_address_line1') !== ''): ?>
-            <strong><?= $e($s('church_address_line1')) ?></strong><br>
-          <?php endif; ?>
-          <?php if ($addressCityLine !== ''): ?>
-            <?= $e($addressCityLine) ?><br>
-          <?php endif; ?>
           <?php if ($s('church_mailing') !== ''): ?>
-            <span style="opacity: 0.75; font-size: 0.85rem;">Mailing: <?= $e($s('church_mailing')) ?></span><br>
+            <strong><?= $e($s('church_mailing')) ?></strong><br>
+          <?php endif; ?>
+          <?php if ($visitLine !== ''): ?>
+            <span style="opacity: 0.75; font-size: 0.85rem;">Visit us: <?= $e($visitLine) ?></span><br>
           <?php endif; ?>
           <?php if ($s('church_phone') !== ''): ?>
             <a href="tel:<?= $e(preg_replace('/\D+/', '', $s('church_phone'))) ?>"><?= $e($s('church_phone')) ?></a>
@@ -243,6 +249,9 @@ if ($brandOverrides !== []):
         <div style="margin-top: 1.5rem;">
           <a href="/prayer">Prayer requests</a><br>
           <a href="/contact">Contact us</a>
+          <?php if ($s('newsletter_signup_url') !== ''): ?>
+            <br><a href="<?= $e($s('newsletter_signup_url')) ?>" target="_blank" rel="noopener">Join our mailing list</a>
+          <?php endif; ?>
         </div>
       </div>
 
@@ -253,6 +262,17 @@ if ($brandOverrides !== []):
     </div>
   </div>
 </footer>
+
+<!--
+  Email-obfuscation decoder. The public side renders staff/ministry
+  addresses through \Settle\EmailObfuscator (XOR-hex, no plaintext in
+  the HTML); this small script reverses it on click and reveals the
+  address after load. Without it the "[email protected]" links are inert
+  (the decoder previously lived only in admin.js, which public pages
+  never load — that was the dead-link bug). Deferred so it never blocks
+  first paint.
+-->
+<script src="/assets/js/email-protect.js" defer></script>
 
 </body>
 </html>

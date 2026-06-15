@@ -581,6 +581,17 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
   box-shadow: var(--shadow-card);
+  /* The drawer is absolutely positioned (out of flow), so a long 3-tier
+     menu can run past the viewport with no way to scroll to it. The header
+     is sticky at the top, so the drawer's top sits --header-height-mobile
+     below the viewport top; cap it to the remaining height and let it
+     scroll internally. dvh tracks mobile browser chrome; the preceding vh
+     line is the fallback for engines without dvh (later valid rule wins). */
+  max-height: calc(100vh - var(--header-height-mobile));
+  max-height: calc(100dvh - var(--header-height-mobile));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .site-nav-mobile__list {
   list-style: none;

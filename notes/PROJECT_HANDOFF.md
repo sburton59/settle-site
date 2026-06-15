@@ -74,6 +74,9 @@ New features to explore, no particular order:
 * **Prayer Requests:  Need to go to more than 1 email address.  Need to have an additional option on form to give permission to add the request to the email prayer chain.
 *  **Need to have a link to subscribe to the Constant Contact mailing list.  Link needs to be configurable in the Admin panel.
 *  **The footer address information needs to emphasize the PO box, not the physical address.
+*  **Nothing happens when you click on the [email protected] link on the Staff page.
+*  **When displaying a menu on a phone, the menu fully expands and you can't scroll to the bottom of the menu.
+*  **When setting or changing a password it allowed a blank password.
 
 ## **3\. Architectural Decisions and Rationale**
 

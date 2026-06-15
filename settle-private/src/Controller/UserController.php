@@ -384,7 +384,16 @@ final class UserController extends BaseController
             || $data['password_confirm'] !== '';
 
         if ($wantsPassword) {
-            if (mb_strlen($data['password']) < self::MIN_PASSWORD) {
+            if ($data['password'] === '') {
+                // Explicit, unconditional guard: a new user MUST have a
+                // password, and a password change must not blank it. (The
+                // length check below also catches '', but this gives a
+                // clear message and closes the path even if the numeric
+                // comparison is ever weakened.)
+                $errors['password'] = $isNew
+                    ? 'A password is required for a new user.'
+                    : 'Enter a new password, or leave both fields blank to keep the current one.';
+            } elseif (mb_strlen($data['password']) < self::MIN_PASSWORD) {
                 $errors['password'] = 'Password must be at least ' . self::MIN_PASSWORD . ' characters.';
             } elseif (mb_strlen($data['password']) > self::MAX_PASSWORD) {
                 $errors['password'] = 'Password must be ' . self::MAX_PASSWORD . ' characters or fewer.';
