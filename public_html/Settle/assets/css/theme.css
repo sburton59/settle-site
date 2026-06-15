@@ -886,12 +886,49 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
   font-size: 0.85rem;
   color: var(--brand-primary);
   margin: 0 0 0.75rem;
+  /* Keep a varied set of titles from wrapping cards to different heights. */
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .staff-card__bio {
   font-size: 0.9rem;
+  line-height: 1.5;
   color: var(--text-muted);
-  margin: 0 0 1rem;
+  margin: 0 0 0.5rem;
+  /* Clamp the preview to four lines so a long bio can't inflate its grid
+     row and leave its neighbours with empty gaps. The full text lives in
+     .staff-card__bio-full and opens in the modal via "Read more". */
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Reserve four lines of height so cards with short or no bio still align
+     with their bio'd neighbours instead of collapsing. */
+  min-height: calc(0.9rem * 1.5 * 4);
 }
+/* Full bio text: hidden in the card, cloned into the modal by JS. The
+   [hidden] attribute already hides it; this is a belt-and-suspenders guard
+   in case a future reset overrides attribute hiding. */
+.staff-card__bio-full { display: none; }
+
+.staff-card__more {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0 0 1rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--brand-primary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.staff-card__more:hover { color: var(--brand-primary-dark); }
 .staff-card__contact {
   margin-top: auto;
   font-size: 0.85rem;
@@ -900,6 +937,132 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
 .staff-card__contact a {
   display: block;
   word-break: break-word;
+}
+
+/* --- Screen-reader-only helper (used by the staff "Read more" buttons) --- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Staff bio modal --- */
+.staff-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+.staff-modal[hidden] { display: none; }
+.staff-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity var(--transition-med);
+}
+.staff-modal.is-open .staff-modal__backdrop { opacity: 1; }
+.staff-modal__dialog {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition: opacity var(--transition-med), transform var(--transition-med);
+}
+.staff-modal.is-open .staff-modal__dialog {
+  opacity: 1;
+  transform: none;
+}
+.staff-modal__dialog:focus { outline: none; }
+.staff-modal__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-soft);
+  border-radius: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--brand-ink);
+  cursor: pointer;
+  transition: background var(--transition-med);
+}
+.staff-modal__close:hover { background: var(--bg-soft); }
+.staff-modal__photo {
+  aspect-ratio: 16 / 9;
+  background: var(--bg-soft);
+  background-size: cover;
+  background-position: center top;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.staff-modal__body {
+  padding: 1.5rem 1.75rem 1.75rem;
+}
+.staff-modal__name {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brand-ink);
+  margin: 0 0 0.25rem;
+}
+.staff-modal__title {
+  font-size: 0.95rem;
+  color: var(--brand-primary);
+  margin: 0 0 1rem;
+}
+.staff-modal__title[hidden] { display: none; }
+.staff-modal__bio {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--brand-ink-soft);
+}
+.staff-modal__bio p { margin: 0 0 0.85rem; }
+.staff-modal__bio p:last-child { margin-bottom: 0; }
+.staff-modal__contact {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-soft);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.staff-modal__contact[hidden] { display: none; }
+.staff-modal__contact a {
+  display: inline-block;
+  margin-right: 1rem;
+  word-break: break-word;
+}
+/* Lock background scroll while the modal is open (class set on <body>). */
+body.staff-modal-open { overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-modal__backdrop,
+  .staff-modal__dialog {
+    transition: none;
+  }
+  .staff-modal__dialog { transform: none; }
 }
 
 /* --- Forms (prayer, contact, future) --- */

@@ -1,6 +1,6 @@
 # **Settle Memorial UMC Website Modernization — Project Handoff**
 
-**Document version:** 3.5 **Date prepared:** June 15, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
+**Document version:** 3.6 **Date prepared:** June 15, 2026 **Purpose:** This document brings a new contributor (human or AI) fully up to speed on the project so work can continue without losing context.
 
 **Recent changes** (full history in `CHANGELOG.md`):
 
@@ -346,7 +346,7 @@ settle-private/                        ← Outside web root; not URL-accessible
 * ✅ **Pages: full CRUD** with WYSIWYG (TinyMCE 7) and Media Library picker
 * ✅ **Media Library: full CRUD** — upload, browse, edit metadata, delete; auto-resize to 2000px long edge
 * ✅ **Homepage Slideshow: full admin CRUD** with drag-to-reorder, plus public crossfade rotation
-* ✅ **Staff Directory: full CRUD with public page** — card grid, formatted phones, obfuscated emails
+* ✅ **Staff Directory: full CRUD with public page** — card grid, formatted phones, obfuscated emails. **Bio display (v3.6):** the card-grid bio preview is CSS-clamped to **4 lines** (with a reserved min-height so short/no-bio cards still align and a 1-line title clamp), so a long bio can no longer inflate its grid row and leave neighbours with empty gaps. The full bio opens in a shared centred **modal** ("Read more" — shown only when the preview is actually truncated, detected client-side; opens with photo/name/title/full-bio/contact cloned from the card, closes on X / Esc / backdrop, focus-trapped, body scroll locked, honors `prefers-reduced-motion`). Progressive enhancement: with JS off the cards still render neatly (clamped) and the "Read more" buttons stay hidden. NEW `assets/js/staff-modal.js`; REPLACE `templates/public/staff.php`, `assets/css/theme.css`. No schema/route/controller change.
 * ✅ **Prayer Requests: full intake + admin inbox** — anti-spam, role-gated privacy, audit-logged, email notification (private requests bodyless)
 * ✅ **Contact Form: full intake + admin inbox** — anti-spam, conditional required fields, audit-logged, email forwarding
 * ✅ **Email sending** — `\Settle\Mailer` over authenticated SMTP; contact + prayer notifications; `bin/mail-test.php`
