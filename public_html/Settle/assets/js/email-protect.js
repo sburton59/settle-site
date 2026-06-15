@@ -1,25 +1,21 @@
-// ─── Email obfuscation decoder (public side) ───────────────────────────────
+// ─── Email obfuscation: click-to-mail (public side) ─────────────────────────
 // Reverses the XOR-hex encoding produced by \Settle\EmailObfuscator (see
 // settle-private/src/EmailObfuscator.php). The first two hex chars are the
 // key; the remaining bytes are the address XORed against that key.
 //
-// This is the public-page counterpart of the decoder that already ships in
-// admin.js. Public templates (e.g. the Staff directory) render addresses via
-// EmailObfuscator::link()/::text(), which deliberately keep no plaintext in
-// the HTML — so without this script the links read "[email protected]" and a
-// click does nothing. The public layout never loads admin.js, which is why
-// the links were inert; loading this restores them.
+// PUBLIC-SIDE POLICY: click-only. On the public site we deliberately do NOT
+// reveal the plaintext address on the page — staff/ministry links render with
+// a visible label (e.g. "Email") and the real address lives only in the
+// encoded data-email attribute, so neither visitors nor naive scrapers ever
+// see it in the rendered text or the HTML source. Clicking the link decodes
+// the address on the fly and opens the visitor's mail client.
 //
-// Two behaviours, matching admin.js:
-//   1. On click of an <a class="protected-email">, build the mailto: URL on
-//      the fly and navigate.
-//   2. After load (slight delay), swap the "[email protected]" placeholder
-//      inside .protected-email-text with the decoded address so humans can
-//      read/copy it. The delay keeps the plaintext out of naive scrape-on-load
-//      tools.
+// (admin.js keeps a second behaviour that swaps the placeholder text for the
+// decoded address, because staff working in the admin panel should see the
+// addresses. That reveal is intentionally absent here.)
 //
-// Kept intentionally in sync with the decoder block in admin.js — if the
-// EmailObfuscator encoding ever changes, update both.
+// Kept in sync with the decode() in admin.js: if the EmailObfuscator encoding
+// ever changes, update both.
 
 (function () {
   'use strict';
@@ -37,7 +33,8 @@
     return out;
   }
 
-  // Click handler — builds mailto: on demand and navigates.
+  // Click handler — build mailto: on demand and navigate. Delegated on the
+  // document so it works for any .protected-email link, present or future.
   document.addEventListener('click', function (e) {
     var link = e.target.closest && e.target.closest('a.protected-email');
     if (!link) return;
@@ -47,23 +44,4 @@
       window.location.href = 'mailto:' + addr;
     }
   });
-
-  // Reveal decoded text after page load. setTimeout so we don't block first
-  // paint and so naive scrape-on-load tools miss the plaintext.
-  function revealAll() {
-    document.querySelectorAll('.protected-email-text').forEach(function (el) {
-      var addr = decode(el.getAttribute('data-email') || '');
-      if (addr) {
-        el.textContent = addr;
-      }
-    });
-  }
-
-  if (document.readyState === 'complete') {
-    setTimeout(revealAll, 100);
-  } else {
-    window.addEventListener('load', function () {
-      setTimeout(revealAll, 100);
-    });
-  }
 })();
