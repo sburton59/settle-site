@@ -17,31 +17,42 @@
   var modal = document.getElementById('staff-modal');
   if (!modal) return;
 
-  var dialog     = modal.querySelector('.staff-modal__dialog');
-  var elPhoto    = document.getElementById('staff-modal-photo');
-  var elName     = document.getElementById('staff-modal-name');
-  var elTitle    = document.getElementById('staff-modal-title');
-  var elBio      = document.getElementById('staff-modal-bio');
-  var elContact  = document.getElementById('staff-modal-contact');
+  var dialog    = modal.querySelector('.staff-modal__dialog');
+  var elPhoto   = document.getElementById('staff-modal-photo');
+  var elName    = document.getElementById('staff-modal-name');
+  var elTitle   = document.getElementById('staff-modal-title');
+  var elBio     = document.getElementById('staff-modal-bio');
+  var elContact = document.getElementById('staff-modal-contact');
 
   var lastFocused = null;
 
-  // ── Only show "Read more" where the preview is actually truncated. ────────
-  // A bio that already fits within the four-line clamp needs no expander.
+  // ── Truncation test (WebKit-safe) ─────────────────────────────────────────
+  // The obvious test — scrollHeight > clientHeight on the clamped element —
+  // works in Blink (Chrome) but NOT in WebKit (all iOS browsers): Safari
+  // reports scrollHeight === clientHeight on a -webkit-line-clamp box, so the
+  // button would never appear on iPad/iPhone. Instead, briefly drop the clamp
+  // (.is-measuring) and read the element's natural height, comparing it to the
+  // clamped height. The add/read/remove is synchronous, so nothing repaints
+  // and there's no visible flicker.
+  function isTruncated(prev) {
+    var clampedH = prev.clientHeight;
+    prev.classList.add('is-measuring');
+    var fullH = prev.scrollHeight;   // forces a synchronous reflow
+    prev.classList.remove('is-measuring');
+    return fullH > clampedH + 1;     // +1 absorbs sub-pixel rounding
+  }
+
+  // Show "Read more" only where the preview is actually clipped. Idempotent —
+  // safe to call again after fonts load, on window load, and on resize /
+  // orientation change (when the column width, and therefore the line count,
+  // can change).
   function syncMoreButtons() {
     var cards = document.querySelectorAll('.staff-card');
     Array.prototype.forEach.call(cards, function (card) {
       var btn  = card.querySelector('.staff-card__more');
       var prev = card.querySelector('.staff-card__bio');
       if (!btn || !prev) return;
-
-      // scrollHeight exceeds clientHeight when the clamp has hidden content.
-      // +1 absorbs sub-pixel rounding so we don't show the button needlessly.
-      var truncated = prev.scrollHeight > prev.clientHeight + 1;
-      if (truncated) {
-        btn.hidden = false;
-        btn.addEventListener('click', function () { openFor(card); });
-      }
+      btn.hidden = !isTruncated(prev);
     });
   }
 
@@ -139,7 +150,16 @@
     }
   }
 
-  // Close on the X button or a click on the dimmed backdrop.
+  // ── Open: one delegated handler (no per-button binding, so re-running the
+  // truncation sync can never double-bind or miss a button on iOS). ─────────
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('.staff-card__more') : null;
+    if (!btn) return;
+    var card = btn.closest('.staff-card');
+    if (card) { openFor(card); }
+  });
+
+  // Close on the X button or a click/tap on the dimmed backdrop.
   modal.addEventListener('click', function (e) {
     var t = e.target;
     if (t && t.closest && t.closest('[data-staff-modal-close]')) {
@@ -147,5 +167,22 @@
     }
   });
 
+  // ── Run truncation detection now, then again once the layout has settled.
+  // Lato is a web font: on first paint the system fallback renders, so a check
+  // that runs before the font swaps in measures the wrong metrics. Re-running
+  // after fonts load / on window load / on rotation keeps the buttons correct.
   syncMoreButtons();
+  if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
+    document.fonts.ready.then(syncMoreButtons);
+  }
+  window.addEventListener('load', syncMoreButtons);
+
+  var resizeTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(syncMoreButtons, 150);
+  });
+  window.addEventListener('orientationchange', function () {
+    setTimeout(syncMoreButtons, 200);
+  });
 })();
