@@ -900,16 +900,26 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
   margin: 0 0 0.5rem;
   /* Clamp the preview to four lines so a long bio can't inflate its grid
      row and leave its neighbours with empty gaps. The full text lives in
-     .staff-card__bio-full and opens in the modal via "Read more". */
+     .staff-card__bio-full and opens in the modal via "Read more".
+     -webkit-line-clamp gives the ellipsis where it's honoured (Blink); the
+     max-height below is the cross-browser ENFORCER — Safari/iOS refuses to
+     line-clamp text wrapped in a block <p>, so it would otherwise show the
+     whole bio. */
   display: -webkit-box;
   -webkit-line-clamp: 4;
   line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  /* Reserve four lines of height so cards with short or no bio still align
-     with their bio'd neighbours instead of collapsing. */
+  /* Hard four-line cap that holds everywhere (incl. WebKit with a <p> child).
+     min == max so short/no-bio cards still reserve four lines and stay
+     aligned with their bio'd neighbours instead of collapsing. */
+  max-height: calc(0.9rem * 1.5 * 4);
   min-height: calc(0.9rem * 1.5 * 4);
 }
+/* Neutralise the bio paragraphs' own margins so "four lines" is four lines of
+   text — the global `p { margin: 0 0 1rem }` would otherwise count toward the
+   cap and clip a line early. The modal keeps its own paragraph spacing. */
+.staff-card__bio p { margin: 0; }
 /* Full bio text: hidden in the card, cloned into the modal by JS. The
    [hidden] attribute already hides it; this is a belt-and-suspenders guard
    in case a future reset overrides attribute hiding. */
