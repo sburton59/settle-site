@@ -25,6 +25,7 @@ use Settle\Controller\CalendarOverrideController;
 use Settle\Controller\CategoryController;
 use Settle\Controller\ContactMessageController;
 use Settle\Controller\DashboardController;
+use Settle\Controller\HelpController;
 use Settle\Controller\MediaController;
 use Settle\Controller\MenuController;
 use Settle\Controller\PagesController;
@@ -59,6 +60,8 @@ $router->post('/admin/reset',  [PasswordResetController::class, 'doReset']);
 
 // Admin dashboard
 $router->get('/admin', [DashboardController::class, 'index'], ['auth' => true]);
+$router->get('/admin/help',        [HelpController::class, 'index'],   ['auth' => true]);
+$router->get('/admin/help/{slug}', [HelpController::class, 'section'], ['auth' => true]);
 
 // -------------------------------------------------------------------
 // Settings (admin-only) — church identity, contact, notifications,

@@ -79,6 +79,8 @@ use Settle\Auth;
       <a href="/admin/settings">Settings</a>
       <a href="/admin/audit">Audit Log</a>
     <?php endif; ?>
+
+    <a href="/admin/help">Help</a>
   </nav>
   <div class="signin">
     Signed in as <strong><?= htmlspecialchars($_user['display'] ?? '', ENT_QUOTES) ?></strong>
