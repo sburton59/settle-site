@@ -68,6 +68,6 @@ final class PhoneFormatter
         }
         // If the user typed a +, preserve the international intent.
         $hadPlus = strpos($raw, '+') !== false;
-        return ($hadPlus ? '+' : '') . $digits;
+        return 'tel:' . ($hadPlus ? '+' : '') . $digits;
     }
 }

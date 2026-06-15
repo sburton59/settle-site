@@ -77,6 +77,53 @@ final class EmailObfuscator
     }
 
     /**
+     * Render a working mailto: link that needs NO JavaScript.
+     *
+     * The address is HTML-entity-encoded (every byte as a numeric entity)
+     * in both the href and — when no link text is given — the visible
+     * text. Browsers decode the entities, so the href is a real, clickable
+     * "mailto:" that opens the visitor's mail client even with scripting
+     * off; naive scrapers that scan the raw HTML for "user@host" see only
+     * entity codes. This is deliberately more robust than link(): it does
+     * not depend on a decoder script running, so it can't fall back to a
+     * dead "#" href if that script fails to load.
+     *
+     * @param string|null $address   The email address (anything falsy → '').
+     * @param string|null $linkText  Visible text. Defaults to the address
+     *                               itself (entity-encoded).
+     */
+    public static function mailtoLink(?string $address, ?string $linkText = null): string
+    {
+        $address = trim((string)$address);
+        if ($address === '' || !filter_var($address, FILTER_VALIDATE_EMAIL)) {
+            return '';
+        }
+
+        $encoded  = self::entityEncode($address);
+        $textHtml = $linkText !== null && $linkText !== ''
+            ? htmlspecialchars($linkText, ENT_QUOTES, 'UTF-8')
+            : $encoded;
+
+        return '<a href="mailto:' . $encoded . '" rel="nofollow">'
+             . $textHtml
+             . '</a>';
+    }
+
+    /**
+     * Encode every byte of a string as a decimal HTML numeric entity
+     * (e.g. "a" → "&#97;"). Email addresses are ASCII per RFC 5321, so a
+     * byte-wise pass is safe. Browsers decode these transparently.
+     */
+    private static function entityEncode(string $s): string
+    {
+        $out = '';
+        for ($i = 0, $n = strlen($s); $i < $n; $i++) {
+            $out .= '&#' . ord($s[$i]) . ';';
+        }
+        return $out;
+    }
+
+    /**
      * XOR-encode an address against a random single-byte key, then hex.
      * Output format: first two hex chars are the key, the rest are the
      * XORed-and-hexed address. Matches the decoder in admin.js.

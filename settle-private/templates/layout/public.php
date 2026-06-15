@@ -263,16 +263,5 @@ if ($brandOverrides !== []):
   </div>
 </footer>
 
-<!--
-  Email-obfuscation decoder. The public side renders staff/ministry
-  addresses through \Settle\EmailObfuscator (XOR-hex, no plaintext in
-  the HTML); this small script reverses it on click and reveals the
-  address after load. Without it the "[email protected]" links are inert
-  (the decoder previously lived only in admin.js, which public pages
-  never load — that was the dead-link bug). Deferred so it never blocks
-  first paint.
--->
-<script src="/assets/js/email-protect.js" defer></script>
-
 </body>
 </html>

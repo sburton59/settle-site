@@ -68,7 +68,7 @@ use Settle\PhoneFormatter;
               <?php if ($hasEmail || $hasPhone): ?>
                 <div class="staff-card__contact">
                   <?php if ($hasEmail): ?>
-                    <?= EmailObfuscator::link((string) $member['email'], 'Email') ?>
+                    <?= EmailObfuscator::mailtoLink((string) $member['email'], 'Email') ?>
                   <?php endif; ?>
                   <?php if ($hasPhone): ?>
                     <a href="<?= $e(PhoneFormatter::telHref((string) $member['phone'])) ?>">
