@@ -1,91 +1,89 @@
 # NEXT SESSION — Settle Memorial UMC
 
-**Read `PROJECT_HANDOFF.md` (v3.3) first**, then clone fresh per §13.7
+**Read `PROJECT_HANDOFF.md` (v3.4) first**, then clone fresh per §13.7
 (`git clone --depth 1`, never the raw CDN) and cross-check sizes against
 `urls-details.txt` before proposing changes.
 
 > Doc structure unchanged: living state in `PROJECT_HANDOFF.md`, full
 > per-version narrative in `CHANGELOG.md` (newest first). Content-migration
-> as-built detail is **§17** (image pass = **§17.7**, home redesign = **§17.8**).
+> as-built detail is **§17**. Pre-launch owner tasks are collected in
+> `PRELAUNCH_CHECKLIST.md`.
+
+> **Context:** going live is close, and **users are now editing content**
+> in the admin panel — so the live admin surfaces are in active use. Write
+> the help doc to match what they're actually seeing, and avoid disruptive
+> changes to admin templates.
 
 ---
 
-## Just shipped (v3.3): home-page redesign (#10b)
+## Just shipped (v3.4): §2.2 church-admin review fixes (Batches 1 & 2)
 
-The "more eye-catching home page" sub-pass. Scope agreed with the owner:
-**option 2 (additive)** + the service-times strip from the option-3 mockup.
-New home flow: **photo hero w/ text+CTA overlay → compact crimson service-times
-strip → trimmed welcome band → three photo feature bands → Upcoming Events
-(unchanged) → "Get in touch" CTA (unchanged)**.
+- **Batch 1 (no schema):** footer P.O.-Box emphasis; configurable Constant
+  Contact newsletter link (`newsletter_signup_url`); mobile-menu scroll cap;
+  explicit create-password guard; **no-JS staff email link** via
+  `EmailObfuscator::mailtoLink()` (entity-encoded `mailto:`, "Email" label —
+  the JS-decoder approach was abandoned after it dead-ended at `/staff#`);
+  `PhoneFormatter::telHref()` now returns a real `tel:` URI.
+- **Batch 2 (migration `0006`):** prayer-chain opt-in (`allow_prayer_chain`,
+  forced off when private, surfaced to staff); multi-address notify for prayer
+  & contact (`Mailer::parseRecipients()`, one send per address); `email_list`
+  settings type; prayer-form repopulation fix (`data`→`values` key collision).
 
-- **Hero overlay** — eyebrow + heading + sub-line + two CTAs (`Plan Your Visit`
-  → `/page/im-new`, `Watch Online` → `/page/watch`) on a dark scrim over the
-  slideshow; `z-index:3` (dots stay clickable). Heading/sub-line editable in
-  **Settings → Homepage** (`homepage_hero_heading`, `homepage_hero_subheading`).
-- **Service-times strip** — crimson band from the `worship_*` settings; third
-  service labeled **"Shout!"** with a trailing `(SHOUT!)` stripped for display
-  only. The old "This Sunday" worship cards were removed from the welcome band.
-- **Three feature bands** — I'm New / Grow in Faith / Worship With Us, backed by
-  the v3.2-staged `Section-*.jpg` Library images (resolved by `original_name`
-  via new `Media::findByOriginalNames()`); a missing image falls back to a solid
-  ink band. Labels/links hardcoded.
-- **Connect landing page** — new **published** `connect` page (seed_pages.sql)
-  as the middle band's target; links on to the ministry pages.
+Full as-built detail in `CHANGELOG.md` (v3.4). Validated by SQLite / render /
+DOM-shim harnesses (Batch 1: 19 + 32; Batch 2: 42), all passing; `php -l` clean.
 
-REPLACE only (7 files): `home.php`, `theme.css`, `PublicController.php`,
-`Media.php`, `SettingsController.php`, `seed_settings.sql`, `seed_pages.sql`.
-No new files / schema / migration / route / config / `:root` change.
-Harness: **49 assertions, all passing**; `php -l` clean. See HANDOFF §17.8.
-
-### Owner action items from v3.3 (server / admin — not code)
-1. Deploy: `git pull` on the server (and `chmod 755` the repo root if it's a
-   fresh clone — cPanel defaults to 700 → 403).
-2. **Re-run `sql/seed_settings.sql` and `sql/seed_pages.sql`** in phpMyAdmin —
-   both are idempotent. seed_settings adds the two hero rows; seed_pages adds
-   the published Connect page. (Existing rows are untouched.)
-3. The three feature-band **photos appear only after
-   `php settle-private/bin/migrate-wp-images.php` runs** (it imports the
-   `Section-*.jpg` files). Until then the bands show as solid ink — the page
-   is correct, just not yet photographic. Run it **before DNS cutover**.
-4. The Connect page body links to ministry pages that are still **drafts** —
-   those links 404 until #10 publishes them (expected pre-launch).
-5. Optional: in `/admin/menu`, point the "Connect" dropdown parent at
-   `/page/connect` if you want the nav label itself clickable.
-6. Optional: in `/admin/settings` → Worship times, drop the `(SHOUT!)` suffix
-   from the Contemporary value now that the strip labels it "Shout!".
-7. Hero copy lives in `/admin/settings` → Homepage — edit the heading/sub-line
-   there anytime.
+### Deploy reminders for v3.4 (server / admin)
+1. `git pull`. **Then Restart PHP in cPanel** — stale opcache was the likely
+   reason a prior fix didn't take on the live site.
+2. **Run migration `0006`** once in phpMyAdmin:
+   `settle-private/sql/migrations/0006_add_prayer_chain_optin.sql` (idempotent).
+   **Without it the prayer form errors on submit.**
+3. Optional: `git rm public_html/Settle/assets/js/email-protect.js` (now unused).
+4. Optional: in Settings, the "goes to" fields now take several addresses
+   (one per line or comma-separated).
 
 ---
 
-## Next up — owner's call
+## Next up — two items, owner's stated priority
 
-**First: confirm #9.5 timing.** The **renovation follow-along** (a blog
-category + a progress landing page; gets thumbnail cards for free from #9) is
-**time-sensitive** — it should land before the renovation begins. **Confirm the
-start date at the top of the session.** If it's near, do #9.5 next.
+### 1. Old→new URL redirect map (#10, finish content migration)
+Every live settleumc.com path (`/new/`, `/adult/`, `/mission-service/`,
+`/sermon-series/`, `/this-sundays-bulletin/`, `/news/employment-position/`,
+`/listings/staff/`, the deep `/connect/...` tree) should 301 to its new home so
+inbound links / SEO survive cutover. The live nav tree was captured in the v3.2
+scrape (§17.7) and `urls.txt`/`urls-details.txt`.
+- **Bring the full mapping table for owner sign-off BEFORE writing any
+  `.htaccess` 301s** (owner's explicit instruction). Propose the mechanism too
+  (`.htaccess` rules vs. a small in-router redirect table) with the table.
 
-If #9.5 isn't yet timely, **finish #10 (content migration):**
-- **Run the asset CLIs pre-cutover** (owner action, but verify): both
-  `bin/migrate-wp-assets.php` (page-body images/PDFs, v3.1) and
-  `bin/migrate-wp-images.php` (slideshow / portraits / section bgs, v3.2) must
-  run while settleumc.com still serves the originals.
-- **Review & publish the 21 draft pages** through `/admin/pages` (they carry
-  migrated content but are `is_published=0`). Publishing them also lights up the
-  Connect landing page's ministry links and the hero/band targets.
-- **Build the old→new URL redirect map** — every live settleumc.com path
-  (`/new/`, `/adult/`, `/mission-service/`, `/sermon-series/`,
-  `/this-sundays-bulletin/`, `/news/employment-position/`, `/listings/staff/`,
-  the deep `/connect/...` tree) 301s to its new home so inbound links/SEO
-  survive cutover. The live nav tree was captured in the v3.2 scrape (§17.7).
-  Propose the mapping table + mechanism (`.htaccess` vs. a small router redirect
-  table) before building.
+### 2. Admin help doc (#14) — now scoped
+A comprehensive help doc for the admin pages. Requirements (owner, this session):
+- **One source of truth, rendered two ways:** contextual help **deep-linkable
+  from each admin section**, AND **viewable as a single complete HTML doc**.
+- **Per-role availability matrix** — clearly show which functions each user
+  type (**admin / editor / author**) can use. Build the matrix from the
+  **actual route + controller role gates** (read `public_html/Settle/index.php`
+  route middleware and the in-code `Auth::hasRole()` checks) so it reflects what
+  the code really enforces, not a guess. (See §3.4 role model; note the in-code
+  per-post ownership pattern for authors.)
+- **Print-friendly:** print CSS so it can be **printed in full or one section
+  at a time** (HTML-first; browser print → PDF). Sensible page breaks per
+  section.
+- **Suggested approach:** inventory every admin function first (from the routes
+  + admin layout nav + controllers), then propose the structure + the role
+  matrix before building. Match the live admin UI users are already seeing.
 
-Then the tail: **#13** gap items (Sermons categorisation, Watch/livestream
-embed, mobile smart-banner), **#11** tests, **#12** site search (deliberately
-deferred until the site is fully populated), then **#12b** searchable history,
-**#14** help doc, and the pre-launch checklist.
+---
 
-**At launch:** flip `app.base_url` + the mail host to the live domain, and do
-the DNS cutover. (The reset-link origin and password-reset emails depend on
-`app.base_url` — §13.14.)
+## After those — the tail
+**#13** gap items (Sermons categorisation, Watch/livestream embed, mobile
+smart-banner), **#11** tests, **#12** site search (deferred until content is
+fully populated), then **#12b** searchable history. **Renovation follow-along
+(formerly #9.5) is dropped as a feature — it's a blog post now.**
+
+## Pre-launch (see `PRELAUNCH_CHECKLIST.md`)
+Run both asset CLIs pre-cutover; publish the 21 drafts; reconcile 201 vs 202
+E. 4th; confirm the Guest Survey link; add the current Youth director +
+staff emails + Libby's title in `/admin/staff`; point the Give page's
+Legacy-Giving-Guide.pdf link via Copy-link. **At launch:** flip `app.base_url`
++ the mail host to the live domain, then DNS cutover (§13.14).
