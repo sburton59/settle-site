@@ -206,6 +206,7 @@ CREATE TABLE prayer_requests (
     submitter_name VARCHAR(150) NULL,
     submitter_email VARCHAR(190) NULL,
     is_private TINYINT(1) NOT NULL DEFAULT 0,
+    allow_prayer_chain TINYINT(1) NOT NULL DEFAULT 0,
     request_text TEXT NOT NULL,
     ip_address VARCHAR(45) NULL,
     status ENUM('new','prayed','archived') NOT NULL DEFAULT 'new',

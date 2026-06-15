@@ -82,6 +82,9 @@ $statusLabels = [
                     <?php if ($isPrivate): ?>
                         <span title="Private request" style="font-size:0.85em;">🔒 Private</span>
                     <?php endif; ?>
+                    <?php if (!$isPrivate && (int)($r['allow_prayer_chain'] ?? 0) === 1): ?>
+                        <span title="Sender opted in to the prayer chain" style="font-size:0.85em;">⛓ Prayer chain</span>
+                    <?php endif; ?>
                     <span class="muted" style="font-size:0.85em;">
                         · <?= htmlspecialchars(date('M j, Y g:i a', $submittedAt), ENT_QUOTES) ?>
                     </span>

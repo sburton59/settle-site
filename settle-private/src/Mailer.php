@@ -69,6 +69,42 @@ final class Mailer
     }
 
     /**
+     * Split a stored recipient-list setting into individual addresses.
+     *
+     * Accepts commas, semicolons, and newlines as separators (so a staff
+     * member can paste either "a@x.org, b@y.org" or one address per line),
+     * trims each, drops blanks, and de-duplicates case-insensitively.
+     *
+     * Does NOT validate addresses — callers pass each result to send(),
+     * which validates with FILTER_VALIDATE_EMAIL and skips bad ones. This
+     * keeps a single source of truth for what counts as a valid recipient.
+     *
+     * @return list<string>
+     */
+    public static function parseRecipients(string $list): array
+    {
+        $parts = preg_split('/[,;\r\n]+/', $list);
+        if ($parts === false) {
+            return [];
+        }
+        $out  = [];
+        $seen = [];
+        foreach ($parts as $part) {
+            $addr = trim($part);
+            if ($addr === '') {
+                continue;
+            }
+            $key = strtolower($addr);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $addr;
+        }
+        return $out;
+    }
+
+    /**
      * @param array<string,mixed> $cfg
      * @param array<string,mixed> $opts
      */

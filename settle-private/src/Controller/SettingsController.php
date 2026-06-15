@@ -97,10 +97,12 @@ final class SettingsController extends BaseController
             ['title' => 'Email notifications',
              'intro' => 'Where website form submissions are sent. Changes take effect immediately — no deploy needed.',
              'fields' => [
-                ['key' => 'contact_notify_to', 'label' => 'Contact form goes to',  'type' => 'email', 'max' => 190,
-                 'default' => 'office@settlemem.org'],
-                ['key' => 'prayer_notify_to',  'label' => 'Prayer requests go to', 'type' => 'email', 'max' => 190,
-                 'default' => 'prayer@settlemem.org'],
+                ['key' => 'contact_notify_to', 'label' => 'Contact form goes to',  'type' => 'email_list', 'max' => 1000,
+                 'default' => 'office@settlemem.org',
+                 'help' => 'One or more addresses, separated by commas or new lines. Each address gets its own copy.'],
+                ['key' => 'prayer_notify_to',  'label' => 'Prayer requests go to', 'type' => 'email_list', 'max' => 1000,
+                 'default' => 'prayer@settlemem.org',
+                 'help' => 'One or more addresses, separated by commas or new lines. Each address gets its own copy.'],
             ]],
 
             ['title' => 'Worship times',
@@ -308,6 +310,23 @@ final class SettingsController extends BaseController
                 case 'email':
                     if (!filter_var($val, FILTER_VALIDATE_EMAIL)) {
                         $errors[$key] = 'Enter a valid email address.';
+                    }
+                    break;
+
+                case 'email_list':
+                    // One or more addresses separated by commas/newlines.
+                    // Reuse the Mailer's parser so "valid recipient" means
+                    // exactly the same thing here as at send time.
+                    $addrs = \Settle\Mailer::parseRecipients($val);
+                    if ($addrs === []) {
+                        $errors[$key] = 'Enter at least one email address, or leave blank.';
+                        break;
+                    }
+                    foreach ($addrs as $addr) {
+                        if (!filter_var($addr, FILTER_VALIDATE_EMAIL)) {
+                            $errors[$key] = 'One or more addresses are invalid. Separate addresses with commas or new lines.';
+                            break;
+                        }
                     }
                     break;
 

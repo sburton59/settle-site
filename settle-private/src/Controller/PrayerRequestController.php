@@ -53,8 +53,9 @@ final class PrayerRequestController extends BaseController
 
         $this->renderPublic('public/prayer', [
             'errors'   => [],
-            'data'     => ['submitter_name' => '', 'submitter_email' => '',
-                           'request_text' => '', 'is_private' => 0],
+            'values'   => ['submitter_name' => '', 'submitter_email' => '',
+                           'request_text' => '', 'is_private' => 0,
+                           'allow_prayer_chain' => 0],
             'success'  => false,
         ]);
     }
@@ -69,6 +70,7 @@ final class PrayerRequestController extends BaseController
             'submitter_email' => trim((string)$this->input('submitter_email', '')),
             'request_text'    => trim((string)$this->input('request_text', '')),
             'is_private'      => $this->input('is_private') ? 1 : 0,
+            'allow_prayer_chain' => $this->input('allow_prayer_chain') ? 1 : 0,
         ];
 
         // --- Anti-spam: honeypot ---
@@ -101,7 +103,7 @@ final class PrayerRequestController extends BaseController
             $_SESSION[self::FORM_STAMP_KEY] = time();
             $this->renderPublic('public/prayer', [
                 'errors'  => $errors,
-                'data'    => $data,
+                'values'  => $data,
                 'success' => false,
             ]);
             return;
@@ -162,6 +164,9 @@ final class PrayerRequestController extends BaseController
         $adminUrl  = $baseUrl . '/admin/prayer/' . $id;
         $isPrivate = (int)$data['is_private'] === 1;
         $name      = $data['submitter_name'] !== '' ? $data['submitter_name'] : '(anonymous)';
+        // A private request never goes on the chain; reflect the effective
+        // value so the team email can't imply otherwise.
+        $onChain   = !$isPrivate && (int)($data['allow_prayer_chain'] ?? 0) === 1;
 
         $opts = [];
 
@@ -171,6 +176,7 @@ final class PrayerRequestController extends BaseController
                 'A private prayer request was submitted through the website.',
                 '',
                 'Submitted by: ' . $name,
+                'Prayer chain: No (private request)',
                 '',
                 'For confidentiality, the request text is not included in this',
                 'email. Please view it in the admin panel (sign-in required):',
@@ -184,6 +190,9 @@ final class PrayerRequestController extends BaseController
                 '',
                 'Submitted by: ' . $name,
                 'Email:        ' . $email,
+                'Prayer chain: ' . ($onChain
+                    ? 'YES — sender opted in to share with prayer-chain volunteers'
+                    : 'No'),
                 '',
                 'Request:',
                 $data['request_text'],
@@ -198,13 +207,28 @@ final class PrayerRequestController extends BaseController
         }
 
         $body = implode("\n", $lines);
-        $sent = Mailer::send($to, $subject, $body, $opts);
+
+        // prayer_notify_to may hold several addresses (commas/newlines);
+        // send one message per address. Mailer::send() validates each and
+        // skips any that are malformed.
+        $recipients = Mailer::parseRecipients($to);
+        $sent = 0;
+        foreach ($recipients as $addr) {
+            if (Mailer::send($addr, $subject, $body, $opts)) {
+                $sent++;
+            }
+        }
 
         AuditLog::record(
             'prayer.notified',
             'prayer_request',
             $id,
-            ['private' => $isPrivate ? 1 : 0, 'notified' => $sent]
+            [
+                'private'      => $isPrivate ? 1 : 0,
+                'prayer_chain' => $onChain ? 1 : 0,
+                'recipients'   => count($recipients),
+                'notified'     => $sent,
+            ]
         );
     }
 
@@ -216,8 +240,9 @@ final class PrayerRequestController extends BaseController
     {
         $this->renderPublic('public/prayer', [
             'errors'  => [],
-            'data'    => ['submitter_name' => '', 'submitter_email' => '',
-                          'request_text' => '', 'is_private' => 0],
+            'values'  => ['submitter_name' => '', 'submitter_email' => '',
+                          'request_text' => '', 'is_private' => 0,
+                          'allow_prayer_chain' => 0],
             'success' => true,
         ]);
     }

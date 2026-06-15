@@ -58,6 +58,17 @@ $isAdmin     = \Settle\Auth::hasRole('admin');
             </span>
         </dd>
 
+        <dt class="muted">Prayer chain:</dt>
+        <dd style="margin:0;">
+            <?php if ($isPrivate): ?>
+                <em class="muted">N/A (private request)</em>
+            <?php elseif ((int)($r['allow_prayer_chain'] ?? 0) === 1): ?>
+                <strong>Yes</strong> — sender opted in to share with prayer-chain volunteers
+            <?php else: ?>
+                No
+            <?php endif; ?>
+        </dd>
+
         <?php if ($isAdmin && !empty($r['ip_address'])): ?>
             <dt class="muted">IP:</dt>
             <dd style="margin:0; font-family:monospace; font-size:0.9em;">

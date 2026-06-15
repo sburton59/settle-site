@@ -36,7 +36,7 @@ final class PrayerRequest
         if ($status === null) {
             return Database::query(
                 'SELECT id, submitter_name, submitter_email, is_private,
-                        request_text, ip_address, status, submitted_at
+                        allow_prayer_chain, request_text, ip_address, status, submitted_at
                    FROM prayer_requests
                   ORDER BY submitted_at DESC, id DESC
                   LIMIT ' . $limit . ' OFFSET ' . $offset
@@ -45,7 +45,7 @@ final class PrayerRequest
 
         return Database::query(
             'SELECT id, submitter_name, submitter_email, is_private,
-                    request_text, ip_address, status, submitted_at
+                    allow_prayer_chain, request_text, ip_address, status, submitted_at
                FROM prayer_requests
               WHERE status = :status
               ORDER BY submitted_at DESC, id DESC
@@ -58,7 +58,7 @@ final class PrayerRequest
     {
         $row = Database::query(
             'SELECT id, submitter_name, submitter_email, is_private,
-                    request_text, ip_address, status, submitted_at
+                    allow_prayer_chain, request_text, ip_address, status, submitted_at
                FROM prayer_requests
               WHERE id = :id',
             [':id' => $id]
@@ -70,9 +70,11 @@ final class PrayerRequest
      * Insert a new submission. Returns the new id.
      *
      * Expected $data keys: submitter_name, submitter_email, request_text,
-     *                     is_private, ip_address.
+     *                     is_private, allow_prayer_chain, ip_address.
      * Name and email may be empty strings (form is anonymous-friendly);
-     * we normalize to NULL in that case.
+     * we normalize to NULL in that case. allow_prayer_chain is opt-in and
+     * is forced to 0 whenever is_private is set — a private request never
+     * goes on the chain.
      */
     public static function create(array $data): int
     {
@@ -81,16 +83,23 @@ final class PrayerRequest
         $text  = isset($data['request_text'])    ? trim((string)$data['request_text'])    : '';
         $ip    = isset($data['ip_address'])      ? (string)$data['ip_address']            : null;
 
+        $private = !empty($data['is_private']) ? 1 : 0;
+        // Opt-in only, and a private request never goes on the chain —
+        // enforce that here too so stored data can't contradict itself,
+        // regardless of what the caller passed.
+        $chain = ($private === 0 && !empty($data['allow_prayer_chain'])) ? 1 : 0;
+
         Database::query(
             'INSERT INTO prayer_requests
-                (submitter_name, submitter_email, is_private,
+                (submitter_name, submitter_email, is_private, allow_prayer_chain,
                  request_text, ip_address, status, submitted_at)
              VALUES
-                (:name, :email, :priv, :body, :ip, \'new\', NOW())',
+                (:name, :email, :priv, :chain, :body, :ip, \'new\', NOW())',
             [
                 ':name'  => $name === ''  ? null : $name,
                 ':email' => $email === '' ? null : $email,
-                ':priv'  => !empty($data['is_private']) ? 1 : 0,
+                ':priv'  => $private,
+                ':chain' => $chain,
                 ':body'  => $text,
                 ':ip'    => $ip !== '' ? $ip : null,
             ]

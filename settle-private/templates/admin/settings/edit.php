@@ -102,7 +102,7 @@ $err = static function (string $k) use ($errors): string {
             <?= $err($key) ?>
           </label>
 
-        <?php elseif ($type === 'textarea'): ?>
+        <?php elseif ($type === 'textarea' || $type === 'email_list'): ?>
           <label>
             <span style="font-weight:600;"><?= $label ?></span>
             <?= $help ?>

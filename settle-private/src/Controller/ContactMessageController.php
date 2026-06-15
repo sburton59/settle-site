@@ -177,13 +177,21 @@ final class ContactMessageController extends BaseController
             $opts['reply_to'] = $data['sender_email'];
         }
 
-        $sent = Mailer::send($to, $subject, $body, $opts);
+        // contact_notify_to may hold several addresses (commas/newlines);
+        // send one message per address. Mailer::send() validates each.
+        $recipients = Mailer::parseRecipients($to);
+        $sent = 0;
+        foreach ($recipients as $addr) {
+            if (Mailer::send($addr, $subject, $body, $opts)) {
+                $sent++;
+            }
+        }
 
         AuditLog::record(
             'contact.notified',
             'contact_message',
             $id,
-            ['notified' => $sent]
+            ['recipients' => count($recipients), 'notified' => $sent]
         );
     }
 
