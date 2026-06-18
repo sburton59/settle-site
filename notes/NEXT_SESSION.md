@@ -1,6 +1,6 @@
 # NEXT SESSION — Settle Memorial UMC
 
-**Read `PROJECT_HANDOFF.md` (v3.5) first**, then clone fresh per §13.7
+**Read `PROJECT_HANDOFF.md` (v3.7) first**, then clone fresh per §13.7
 (`git clone --depth 1`, never the raw CDN) and cross-check sizes against
 `urls-details.txt` before proposing changes.
 
@@ -15,33 +15,36 @@
 
 ---
 
-## Just shipped (v3.5): admin help doc (#14)
+## Just shipped (v3.7): church-history Books feature
 
-One source of truth (`\Settle\Help`) rendered two ways:
-- **`/admin/help`** — full single-page doc: TOC, per-role capability matrix,
-  per-section print links, print CSS (one section per page).
-- **`/admin/help/{slug}`** — one section on its own, printable alone.
+A small public **`/books/{slug}`** feature serving long-form historical reprints as
+standalone **cream-paper book editions**, kept off the Pages/TinyMCE surface so the
+hand-set markup is never mangled. First title: the 1976 reprint
+*Our Church — A Story of a Hundred Years' Service* at **`/books/our-church`**
+(OCR-cleaned; original folios 3–28 kept in the margin; rosters as structured lists).
 
-Auth-required, **no role gate** (everyone may read help); reached via a single
-**"Help"** link in the admin sidebar. The per-role matrix (Author / Editor /
-Administrator) is transcribed from the **actual route role gates + in-code
-ownership / `hasRole()` checks** (not the sidebar). Includes the "you may see
-links you can't use -> Forbidden" expectation note and an account/forgot-password
-section. **Owner decision:** single sidebar link, not per-screen deep-links, to
-avoid touching the in-use admin section templates.
+- **`BooksController`** = a `BOOKS` registry + `show()` (unknown slug → 404, like
+  `PublicController::post()`); renders via `PublicView::render('public/book', …)`.
+- Shared **`book.php`** chrome `require`s shared **`books/_styles.php`** once + `include`s the
+  per-book content fragment — each book file is pure, trusted content.
+- Content as **template fragments** under `templates/public/books/` (owner: fixed reprints,
+  no admin-edit surface). Route is **public, no gate, not `Features`-flagged** (always-on).
+- **`/books` library index deferred** until a 2nd book exists (registry already supports it).
+- One-line `MenuController::buildUrlRegistry()` entry so the URL shows in the admin
+  link-picker; public entry is the link on the (published) History page.
 
-Full as-built detail in `CHANGELOG.md` (v3.5). Validated by a 90-assertion
-render + matrix-accuracy harness, all passing; `php -l` clean.
+Validated by a **29-assertion** dispatch + render harness (notices = failures), all passing;
+`php -l` clean. Full as-built detail in `CHANGELOG.md` (v3.7).
 
-### Deploy reminders for v3.5 (server)
+### Deploy reminders for v3.7 (server)
 1. `git pull`. **Then Restart PHP in cPanel** (stale opcache).
-2. **Hand-edit `public_html/Settle/index.php`** — this file is delivered as a
-   snippet, not a whole-file replace. Add the `HelpController` import with the
-   other `use Settle\Controller\...;` lines, and the two `/admin/help` routes
-   right after the `/admin` dashboard route. See `MANIFEST.txt`.
-3. No SQL this release — **no migration, no schema/config change.**
-4. Verify: sign in, click **Help** in the sidebar; confirm the matrix renders
-   and "Print just this section" opens a single-section page.
+2. **Hand-edit `public_html/Settle/index.php`** (delivered as a snippet, not a whole-file
+   replace): add the `BooksController` import with the other `use Settle\Controller\…;`
+   lines, and one `GET /books/{slug}` route mirroring the `/blog/{slug}` line (public, no
+   gate). See `MANIFEST.txt`.
+3. **No SQL this release** — no migration, no schema/config/settings change.
+4. Verify: visit `/books/our-church` (renders the cream book inside the normal site
+   header/footer); confirm the History page link resolves; an unknown slug → 404.
 
 ---
 

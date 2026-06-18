@@ -511,6 +511,7 @@ final class MenuController extends BaseController
             ['key' => 'blog',    'url' => '/blog',     'label' => 'Blog index'],
             ['key' => 'calendar','url' => '/calendar', 'label' => 'Calendar'],
             ['key' => 'calendar','url' => '/calendar/list', 'label' => 'Calendar (list view)'],
+            ['key' => null,      'url' => '/books/our-church', 'label' => 'History: Our Church (1976)'],
         ];
         foreach ($featureUrls as $fu) {
             if ($fu['key'] !== null && !Features::enabled($fu['key'])) {
