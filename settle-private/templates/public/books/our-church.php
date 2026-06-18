@@ -16,7 +16,7 @@
       <p class="sub">A Story of a Hundred Years' Service</p>
       <div class="orn">&#10086; &#10087; &#10086;</div>
       <p class="where">Owensboro, Kentucky</p>
-      <p class="reprint">Originally Printed May, 1935<br>Reprinted May, 1976</p>
+      <p class="reprint">By Cora Lee Web<br>Originally Printed May, 1935<br>Reprinted May, 1976</p>
     </header>
 
     <hr class="rule2">
