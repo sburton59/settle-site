@@ -45,6 +45,7 @@
 
 /* ---- cover / title page ---- */
 .book__cover{text-align:center;padding:2rem 0 1rem;}
+.book .book__cover p{text-align:center;} /* beats the general .book p justify rule */
 .book__cover .pre{font-size:.74rem;letter-spacing:.34em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 1.6rem;}
 .book__cover h1{font-size:3.1rem;line-height:1.05;margin:0;font-weight:600;letter-spacing:.01em;}
 .book__cover .sub{font-style:italic;font-size:1.32rem;color:var(--accent);margin:.9rem 0 0;}
