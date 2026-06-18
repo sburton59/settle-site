@@ -118,16 +118,32 @@
 .book ul.deeds li{margin:0 0 .5rem;padding-left:.2rem;}
 .book .leaders{text-align:center;font-style:italic;color:var(--ink);margin:.6rem 0 1.4rem;line-height:1.9;}
 
-/* ---- library index (/books) ---- */
+/* ---- library index (/books) — cover-button shelf (v3.9) ---- */
 .book__library{text-align:center;}
 .book__library .lead{font-size:1.04rem;color:var(--ink-soft);max-width:34rem;margin:0 auto 2.4rem;}
-.book .shelf{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1.4rem;text-align:left;}
+/* Covers sit on a centered shelf at a uniform HEIGHT; widths vary with each
+   book's aspect ratio (real-bookshelf look). flex-wrap so they stack on
+   narrow screens. */
+.book .shelf{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:2.6rem 2.4rem;}
 .book .shelf li{margin:0;}
-.book .shelf a{display:block;text-decoration:none;color:inherit;background:var(--paper-2);border:1px solid #d9c79e;box-shadow:0 1px 0 #fff8e8 inset;padding:1.4rem 1.6rem;transition:box-shadow .15s ease,transform .15s ease;}
-.book .shelf a:hover,.book .shelf a:focus{box-shadow:0 10px 26px -16px rgba(60,40,15,.55);transform:translateY(-1px);}
-.book .shelf .stitle{display:block;color:var(--accent);font-size:1.5rem;font-weight:600;line-height:1.15;}
-.book .shelf .ssub{display:block;font-style:italic;color:var(--ink);margin-top:.3rem;}
-.book .shelf .syear{display:block;font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);margin-top:.55rem;}
+.book .shelf a.book-link{display:inline-block;text-decoration:none;color:inherit;text-align:center;}
+/* the cover image itself is the button face */
+.book .shelf .cover{display:block;height:300px;width:auto;margin:0 auto;border:1px solid #cdbb92;box-shadow:0 12px 30px -16px rgba(60,40,15,.6);transition:box-shadow .16s ease,transform .16s ease;}
+.book .shelf a.book-link:hover .cover,
+.book .shelf a.book-link:focus-visible .cover{box-shadow:0 18px 40px -16px rgba(60,40,15,.7);transform:translateY(-3px);}
+.book .shelf a.book-link:focus{outline:none;}
+.book .shelf a.book-link:focus-visible .cover{outline:2px solid var(--accent);outline-offset:3px;}
+/* caption beneath the cover */
+.book .shelf .caption{display:block;margin-top:.9rem;max-width:15rem;margin-left:auto;margin-right:auto;}
+.book .shelf .stitle{display:block;color:var(--accent);font-size:1.18rem;font-weight:600;line-height:1.18;}
+.book .shelf .ssub{display:block;font-style:italic;color:var(--ink);font-size:.96rem;margin-top:.2rem;}
+.book .shelf .syear{display:block;font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);margin-top:.4rem;}
+/* fallback: a book with no cover keeps a bordered text card so the page
+   never shows a gap (mirrors the staff-portrait / feature-band fallbacks) */
+.book .shelf a.book-link.no-cover{background:var(--paper-2);border:1px solid #d9c79e;box-shadow:0 1px 0 #fff8e8 inset;padding:1.4rem 1.6rem;}
+.book .shelf a.book-link.no-cover:hover{box-shadow:0 10px 26px -16px rgba(60,40,15,.55);transform:translateY(-1px);}
+.book .shelf a.book-link.no-cover .caption{margin-top:0;}
+.book .shelf a.book-link.no-cover .stitle{font-size:1.5rem;}
 
 /* ---- responsive ---- */
 @media (max-width:640px){
@@ -137,6 +153,8 @@
   .book p{text-align:left;}
   .book .folio{display:none;}
   .book ul.names{columns:1;}
+  .book .shelf{gap:1.8rem 1.4rem;}
+  .book .shelf .cover{height:220px;}
 }
 
 /* ---- print ---- */

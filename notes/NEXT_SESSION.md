@@ -1,6 +1,6 @@
 # NEXT SESSION — Settle Memorial UMC
 
-**Read `PROJECT_HANDOFF.md` (v3.8) first**, then clone fresh per §13.7
+**Read `PROJECT_HANDOFF.md` (v3.9) first**, then clone fresh per §13.7
 (`git clone --depth 1`, never the raw CDN) and cross-check sizes against
 `urls-details.txt` before proposing changes.
 
@@ -15,38 +15,39 @@
 
 ---
 
-## Just shipped (v3.8): second book + the `/books` library index
+## Just shipped (v3.9): cover-image buttons on the `/books` library
 
-Added a second cream-paper title — **_Behind the Open Door_ (1995)**, a history of
-the **Open Door Sunday School Class** — at **`/books/behind-the-open-door`**, and,
-now that a 2nd book exists, finally wired the deferred **`/books` library index**.
+The library shelf now selects each book by its **scanned cover** instead of a
+text card.
 
-- New content fragment `templates/public/books/behind-the-open-door.php` (set from
-  the booklet PDF; web-cleaned — hyphens rejoined, scannos + the "EPLOGUE" heading
-  fixed, original folios v/1–34 kept; the 1950s Minstrel section is **verbatim record**).
-- New structures (asterisk **anecdote** vignettes, project **sub-headings**, a Camp
-  Loucon **deeds** list, a **leaders** block) are handled by **additive-only** classes
-  appended to `books/_styles.php` — every new selector is scoped under a new class (or
-  `h3.subsec` / `.book__library`, which book 1 lacks), so **_Our Church_ is byte-identical**.
-- **`/books` index** = `BooksController::library()` (lists the same `BOOKS` registry) +
-  `templates/public/books_index.php` (a "shelf" of cards, `$e`-escaped) + the literal
-  **`GET /books`** route registered **before** `GET /books/{slug}`. Both public, no gate,
-  not `Features`-flagged. Three internal-link-picker entries in `MenuController`.
+- Covers are **committed static assets** at
+  `public_html/Settle/assets/img/books/{slug}.jpg` (served by Apache, off the
+  Media Library — matching the Books feature's version-controlled, off-CMS
+  stance), optimized to ~1000-px-tall progressive JPEG. Two shipped:
+  `our-church.jpg`, `behind-the-open-door.jpg`.
+- `BooksController::BOOKS` gained an optional **`cover`** key (absolute URL).
+  `library()` already spreads the row, so it flows through unchanged.
+- `books_index.php`: each shelf item is an `<a class="book-link">` with the
+  cover `<img>` + a caption (title/subtitle/year, `$e`-escaped). A book with
+  **no cover** degrades to the old bordered text card (`.book-link.no-cover`)
+  — never a broken image.
+- `books/_styles.php`: shelf restyled to a centered flex-wrap row, uniform
+  cover **height** (300 px desktop / 220 px phone) with auto width so the two
+  differing aspect ratios still line up; hover-lift + keyboard focus ring.
 
-Validated by a **34-assertion** render + wiring harness (notices = failures), all passing;
-`php -l` clean. Full as-built detail in `CHANGELOG.md` (v3.8).
+Validated by a **20-assertion** render harness (notices = failures), all
+passing; `php -l` clean. Full as-built in `CHANGELOG.md` (v3.9).
 
-### Deploy reminders for v3.8 (server)
+### Deploy reminders for v3.9 (server)
 1. `git pull`. **Then Restart PHP in cPanel** (stale opcache).
-2. **Hand-edit `public_html/Settle/index.php`** (delivered as a snippet, not a whole-file
-   replace): add **one** `$router->get('/books', [BooksController::class, 'library']);`
-   line **immediately above** the existing `$router->get('/books/{slug}', …)` line. The
-   `BooksController` import is already present from v3.7. See `MANIFEST.txt`.
-3. **No SQL this release** — no migration, no schema/config/settings change.
-4. Verify: `/books` lists both titles; `/books/behind-the-open-door` renders the cream
-   book inside the normal header/footer; `/books/our-church` is unchanged; unknown slug → 404.
-5. **Owner content edit (manual):** link the new book (and/or `/books`) from the published
-   **History page**, the way _Our Church_ was linked — discoverability is not automatic.
+2. **No hand-edit, no SQL** — the v3.8 `/books` route is unchanged. Just make
+   sure the new **binary cover images** under
+   `public_html/Settle/assets/img/books/` actually land on the server (they're
+   in the repo; confirm the pull brought them, not just the text files).
+3. Verify: `/books` shows both covers as buttons; each opens its book; a
+   book without a cover (none right now) would show a text card instead.
+4. **Owner content edit (still pending):** link the new book and/or `/books`
+   from the published History page — discoverability is not automatic.
 
 ---
 

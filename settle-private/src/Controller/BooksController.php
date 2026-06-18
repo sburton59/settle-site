@@ -40,8 +40,13 @@ final class BooksController extends BaseController
      *   subtitle — shown on the book's own cover (in the content fragment)
      *   year     — publication/reprint year, for an eventual library index
      *   view     — content fragment under templates/public/, no extension
+     *   cover    — absolute URL of the cover image used as the library
+     *              button (a static asset under public assets, version-
+     *              controlled with the code), or omit/empty for none — the
+     *              index then falls back to a bordered text card for that
+     *              book so it never shows a broken image.
      *
-     * @var array<string, array{title:string, subtitle:string, year:string, view:string}>
+     * @var array<string, array{title:string, subtitle:string, year:string, view:string, cover?:string}>
      */
     private const BOOKS = [
         'our-church' => [
@@ -49,12 +54,14 @@ final class BooksController extends BaseController
             'subtitle' => "A Story of a Hundred Years' Service",
             'year'     => '1976',
             'view'     => 'books/our-church',
+            'cover'    => '/assets/img/books/our-church.jpg',
         ],
         'behind-the-open-door' => [
             'title'    => 'Behind the Open Door',
             'subtitle' => 'Open Door Sunday School Class',
             'year'     => '1995',
             'view'     => 'books/behind-the-open-door',
+            'cover'    => '/assets/img/books/behind-the-open-door.jpg',
         ],
     ];
 
