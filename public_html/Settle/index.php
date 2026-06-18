@@ -152,7 +152,8 @@ if (Features::enabled('blog')) {
 //   BooksController registry. No /books library index yet (held until
 //   a 2nd book exists). Mirrors the /blog/{slug} public route shape.
 // -------------------------------------------------------------------
-    $router->get('/books/{slug}', [BooksController::class, 'show']);
+    $router->get('/books', [BooksController::class, 'library']);
+	$router->get('/books/{slug}', [BooksController::class, 'show']);
 
 // -------------------------------------------------------------------
 // Media Library

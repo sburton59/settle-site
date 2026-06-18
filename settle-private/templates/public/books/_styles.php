@@ -101,6 +101,34 @@
 .book__colophon h2{font-size:.74rem;letter-spacing:.28em;text-transform:uppercase;margin:0 0 .8rem;color:var(--ink-soft);font-weight:600;}
 .book__colophon p{text-align:left;}
 
+/* ============================================================
+   ADDITIVE (v3.8) — used by "Behind the Open Door" (book 2) and
+   the /books library index. New class names only; "Our Church"
+   references none of these, so book 1 is visually unchanged.
+   ============================================================ */
+.book .stars{text-align:center;color:var(--accent);letter-spacing:.45em;font-size:.85rem;margin:2.1rem 0;user-select:none;}
+.book .anecdote{font-style:italic;color:var(--ink-soft);max-width:34rem;margin:1.7rem auto;}
+.book .anecdote p{text-align:left;margin:0 0 .7rem;hyphens:none;}
+.book .anecdote p:last-child{margin-bottom:0;}
+.book .anecdote .who{font-style:italic;color:var(--ink);}
+.book .anecdote .atitle{display:block;text-align:center;font-style:italic;text-decoration:underline;color:var(--accent);margin:0 0 .9rem;font-size:1.08rem;}
+.book h3.subsec{text-align:center;color:var(--ink);font-weight:600;font-size:.94rem;letter-spacing:.12em;text-transform:uppercase;margin:2.6rem 0 .3rem;}
+.book h3.subsec + .rule2{margin:.9rem auto 1.5rem;width:24%;}
+.book ul.deeds{margin:.6rem 0 1.4rem 1.3rem;padding:0;}
+.book ul.deeds li{margin:0 0 .5rem;padding-left:.2rem;}
+.book .leaders{text-align:center;font-style:italic;color:var(--ink);margin:.6rem 0 1.4rem;line-height:1.9;}
+
+/* ---- library index (/books) ---- */
+.book__library{text-align:center;}
+.book__library .lead{font-size:1.04rem;color:var(--ink-soft);max-width:34rem;margin:0 auto 2.4rem;}
+.book .shelf{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1.4rem;text-align:left;}
+.book .shelf li{margin:0;}
+.book .shelf a{display:block;text-decoration:none;color:inherit;background:var(--paper-2);border:1px solid #d9c79e;box-shadow:0 1px 0 #fff8e8 inset;padding:1.4rem 1.6rem;transition:box-shadow .15s ease,transform .15s ease;}
+.book .shelf a:hover,.book .shelf a:focus{box-shadow:0 10px 26px -16px rgba(60,40,15,.55);transform:translateY(-1px);}
+.book .shelf .stitle{display:block;color:var(--accent);font-size:1.5rem;font-weight:600;line-height:1.15;}
+.book .shelf .ssub{display:block;font-style:italic;color:var(--ink);margin-top:.3rem;}
+.book .shelf .syear{display:block;font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);margin-top:.55rem;}
+
 /* ---- responsive ---- */
 @media (max-width:640px){
   .book{font-size:1.08rem;padding:1rem .4rem 2.5rem;}

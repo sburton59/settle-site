@@ -1,6 +1,6 @@
 # NEXT SESSION — Settle Memorial UMC
 
-**Read `PROJECT_HANDOFF.md` (v3.7) first**, then clone fresh per §13.7
+**Read `PROJECT_HANDOFF.md` (v3.8) first**, then clone fresh per §13.7
 (`git clone --depth 1`, never the raw CDN) and cross-check sizes against
 `urls-details.txt` before proposing changes.
 
@@ -15,36 +15,38 @@
 
 ---
 
-## Just shipped (v3.7): church-history Books feature
+## Just shipped (v3.8): second book + the `/books` library index
 
-A small public **`/books/{slug}`** feature serving long-form historical reprints as
-standalone **cream-paper book editions**, kept off the Pages/TinyMCE surface so the
-hand-set markup is never mangled. First title: the 1976 reprint
-*Our Church — A Story of a Hundred Years' Service* at **`/books/our-church`**
-(OCR-cleaned; original folios 3–28 kept in the margin; rosters as structured lists).
+Added a second cream-paper title — **_Behind the Open Door_ (1995)**, a history of
+the **Open Door Sunday School Class** — at **`/books/behind-the-open-door`**, and,
+now that a 2nd book exists, finally wired the deferred **`/books` library index**.
 
-- **`BooksController`** = a `BOOKS` registry + `show()` (unknown slug → 404, like
-  `PublicController::post()`); renders via `PublicView::render('public/book', …)`.
-- Shared **`book.php`** chrome `require`s shared **`books/_styles.php`** once + `include`s the
-  per-book content fragment — each book file is pure, trusted content.
-- Content as **template fragments** under `templates/public/books/` (owner: fixed reprints,
-  no admin-edit surface). Route is **public, no gate, not `Features`-flagged** (always-on).
-- **`/books` library index deferred** until a 2nd book exists (registry already supports it).
-- One-line `MenuController::buildUrlRegistry()` entry so the URL shows in the admin
-  link-picker; public entry is the link on the (published) History page.
+- New content fragment `templates/public/books/behind-the-open-door.php` (set from
+  the booklet PDF; web-cleaned — hyphens rejoined, scannos + the "EPLOGUE" heading
+  fixed, original folios v/1–34 kept; the 1950s Minstrel section is **verbatim record**).
+- New structures (asterisk **anecdote** vignettes, project **sub-headings**, a Camp
+  Loucon **deeds** list, a **leaders** block) are handled by **additive-only** classes
+  appended to `books/_styles.php` — every new selector is scoped under a new class (or
+  `h3.subsec` / `.book__library`, which book 1 lacks), so **_Our Church_ is byte-identical**.
+- **`/books` index** = `BooksController::library()` (lists the same `BOOKS` registry) +
+  `templates/public/books_index.php` (a "shelf" of cards, `$e`-escaped) + the literal
+  **`GET /books`** route registered **before** `GET /books/{slug}`. Both public, no gate,
+  not `Features`-flagged. Three internal-link-picker entries in `MenuController`.
 
-Validated by a **29-assertion** dispatch + render harness (notices = failures), all passing;
-`php -l` clean. Full as-built detail in `CHANGELOG.md` (v3.7).
+Validated by a **34-assertion** render + wiring harness (notices = failures), all passing;
+`php -l` clean. Full as-built detail in `CHANGELOG.md` (v3.8).
 
-### Deploy reminders for v3.7 (server)
+### Deploy reminders for v3.8 (server)
 1. `git pull`. **Then Restart PHP in cPanel** (stale opcache).
 2. **Hand-edit `public_html/Settle/index.php`** (delivered as a snippet, not a whole-file
-   replace): add the `BooksController` import with the other `use Settle\Controller\…;`
-   lines, and one `GET /books/{slug}` route mirroring the `/blog/{slug}` line (public, no
-   gate). See `MANIFEST.txt`.
+   replace): add **one** `$router->get('/books', [BooksController::class, 'library']);`
+   line **immediately above** the existing `$router->get('/books/{slug}', …)` line. The
+   `BooksController` import is already present from v3.7. See `MANIFEST.txt`.
 3. **No SQL this release** — no migration, no schema/config/settings change.
-4. Verify: visit `/books/our-church` (renders the cream book inside the normal site
-   header/footer); confirm the History page link resolves; an unknown slug → 404.
+4. Verify: `/books` lists both titles; `/books/behind-the-open-door` renders the cream
+   book inside the normal header/footer; `/books/our-church` is unchanged; unknown slug → 404.
+5. **Owner content edit (manual):** link the new book (and/or `/books`) from the published
+   **History page**, the way _Our Church_ was linked — discoverability is not automatic.
 
 ---
 

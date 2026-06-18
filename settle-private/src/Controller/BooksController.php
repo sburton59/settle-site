@@ -17,11 +17,13 @@ use Settle\PublicView;
  *
  * Routing (public, no auth/role gate; not Features-flagged — like '/', it is
  * always on):
+ *   GET /books         -> library()   library index
  *   GET /books/{slug}  -> show()      single book
  *
- * A '/books' library index is intentionally NOT wired yet (owner decision:
- * hold until a second book exists). When it lands it is a library() method,
- * one template, and one route line — the registry already supports it.
+ * The '/books' library index was held until a second book existed (owner
+ * decision); with "Behind the Open Door" (1995) added alongside "Our Church"
+ * (1976) it is now wired — a library() method, one template, one route line.
+ * The registry is the single source of truth for both.
  *
  * Rendering goes through PublicView::render() so $settings + $menu_tree inject
  * (the §13.10 rule — never View::render(.., 'public') directly). Data keys
@@ -48,6 +50,12 @@ final class BooksController extends BaseController
             'year'     => '1976',
             'view'     => 'books/our-church',
         ],
+        'behind-the-open-door' => [
+            'title'    => 'Behind the Open Door',
+            'subtitle' => 'Open Door Sunday School Class',
+            'year'     => '1995',
+            'view'     => 'books/behind-the-open-door',
+        ],
     ];
 
     /**
@@ -70,6 +78,25 @@ final class BooksController extends BaseController
             'page_title'   => $book['title'],
             'book'         => $book,
             'content_file' => $book['view'] . '.php',
+        ]);
+    }
+
+    /**
+     * Library index — lists every book in the registry. Wired once a second
+     * book existed (the deferred owner decision). Slug is carried alongside
+     * each registry row so the template can build /books/{slug} links without
+     * a second lookup. Keys avoid 'data'/'template'/'layout' (§13.9).
+     */
+    public function library(): void
+    {
+        $books = [];
+        foreach (self::BOOKS as $slug => $meta) {
+            $books[] = ['slug' => $slug] + $meta;
+        }
+
+        PublicView::render('public/books_index', [
+            'page_title' => 'Library',
+            'books'      => $books,
         ]);
     }
 }
