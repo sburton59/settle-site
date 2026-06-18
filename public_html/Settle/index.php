@@ -21,6 +21,7 @@ use Settle\Features;
 use Settle\Router;
 use Settle\Controller\AuditLogController;
 use Settle\Controller\AuthController;
+use Settle\Controller\BooksController;
 use Settle\Controller\CalendarOverrideController;
 use Settle\Controller\CategoryController;
 use Settle\Controller\ContactMessageController;
@@ -144,6 +145,14 @@ if (Features::enabled('blog')) {
     $router->post('/admin/categories/{id}',        [CategoryController::class, 'update'],  ['auth' => true, 'role' => 'editor']);
     $router->post('/admin/categories/{id}/delete', [CategoryController::class, 'destroy'], ['auth' => true, 'role' => 'editor']);
 }
+
+// -------------------------------------------------------------------
+// Books (church-history web editions)
+//   Public single book; content lives as a template fragment per the
+//   BooksController registry. No /books library index yet (held until
+//   a 2nd book exists). Mirrors the /blog/{slug} public route shape.
+// -------------------------------------------------------------------
+    $router->get('/books/{slug}', [BooksController::class, 'show']);
 
 // -------------------------------------------------------------------
 // Media Library
