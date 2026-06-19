@@ -538,6 +538,18 @@ h1 + h2, h1 + h3, h2 + h3 { margin-top: -0.25rem; }
   transform: none;
   margin-left: 0.25rem;
 }
+/* Invisible bridge across the margin gap so the pointer never leaves the
+   hover region when traveling from the 2nd-tier item to the 3rd-tier flyout.
+   Lives inside the flyout's subtree, so it keeps the parent :hover alive
+   while the 0.25rem visual separation is preserved. */
+.site-nav__submenu .site-nav__submenu::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -0.25rem;
+  width: 0.25rem;
+  height: 100%;
+}
 
 @media (min-width: 1024px) {
   .site-nav { display: block; }

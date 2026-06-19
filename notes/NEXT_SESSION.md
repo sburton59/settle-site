@@ -1,6 +1,6 @@
 # NEXT SESSION — Settle Memorial UMC
 
-**Read `PROJECT_HANDOFF.md` (v3.9) first**, then clone fresh per §13.7
+**Read `PROJECT_HANDOFF.md` (v3.10) first**, then clone fresh per §13.7
 (`git clone --depth 1`, never the raw CDN) and cross-check sizes against
 `urls-details.txt` before proposing changes.
 
@@ -15,28 +15,28 @@
 
 ---
 
-## Just shipped (v3.9): cover-image buttons on the `/books` library
+## Just shipped (v3.10): 3rd-tier fly-out hover-gap fix
 
-The library shelf now selects each book by its **scanned cover** instead of a
-text card.
+The third-level fly-out menu vanished ~80% of the time on the way to clicking
+it. Cause was a **hover dead-zone**: the side-fly-out is offset with
+`margin-left: 0.25rem`, leaving ~4 px of un-hoverable page between the 2nd- and
+3rd-tier panels; crossing it dropped `:hover` and `display:none` closed the
+panel.
 
-- Covers are **committed static assets** at
-  `public_html/Settle/assets/img/books/{slug}.jpg` (served by Apache, off the
-  Media Library — matching the Books feature's version-controlled, off-CMS
-  stance), optimized to ~1000-px-tall progressive JPEG. Two shipped:
-  `our-church.jpg`, `behind-the-open-door.jpg`.
-- `BooksController::BOOKS` gained an optional **`cover`** key (absolute URL).
-  `library()` already spreads the row, so it flows through unchanged.
-- `books_index.php`: each shelf item is an `<a class="book-link">` with the
-  cover `<img>` + a caption (title/subtitle/year, `$e`-escaped). A book with
-  **no cover** degrades to the old bordered text card (`.book-link.no-cover`)
-  — never a broken image.
-- `books/_styles.php`: shelf restyled to a centered flex-wrap row, uniform
-  cover **height** (300 px desktop / 220 px phone) with auto width so the two
-  differing aspect ratios still line up; hover-lift + keyboard focus ring.
+- Fix is **CSS only** — a transparent hover bridge
+  (`.site-nav__submenu .site-nav__submenu::before`, `left:-0.25rem; width:0.25rem;
+  height:100%`) that fills the gap. It lives inside the fly-out subtree, so
+  hovering it keeps the parent item's `:hover` alive; the visual gap is kept.
+- 2nd tier was never affected (flush, `top:100%`, no offset).
+- `theme.css` only; brace-balanced 359/359, +12 lines. No new `:root` vars; no
+  template/PHP/schema/SQL/route/menu change. New lesson **§13.19**.
+- **Caveat:** CSS can't fully solve diagonal "menu-aim" (clipping a sibling on a
+  diagonal path) — needs JS hover-intent, out of scope. The gap was the
+  dominant cause.
+- **Deploy:** pull → Restart PHP; for CSS, hard-refresh (private tab on iOS) to
+  beat the cache (assets carry no version query string).
 
-Validated by a **20-assertion** render harness (notices = failures), all
-passing; `php -l` clean. Full as-built in `CHANGELOG.md` (v3.9).
+Full as-built in `CHANGELOG.md` (v3.10).
 
 ### Deploy reminders for v3.9 (server)
 1. `git pull`. **Then Restart PHP in cPanel** (stale opcache).
