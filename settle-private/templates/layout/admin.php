@@ -36,6 +36,10 @@ use Settle\Auth;
       <a href="/admin/media">Photos</a>
     <?php endif; ?>
 
+    <?php if (Features::enabled('photo_albums')): ?>
+      <a href="/admin/albums">Photo Albums</a>
+    <?php endif; ?>
+
     <?php if (Features::enabled('slideshow')): ?>
       <a href="/admin/slideshow">Homepage Slideshow</a>
     <?php endif; ?>

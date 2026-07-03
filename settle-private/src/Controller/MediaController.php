@@ -2,7 +2,9 @@
 declare(strict_types=1);
 namespace Settle\Controller;
 
+use Settle\AuditLog;
 use Settle\Auth;
+use Settle\Model\Album;
 use Settle\Model\Media;
 use Settle\Upload;
 
@@ -16,8 +18,10 @@ final class MediaController extends BaseController
 
     public function index(): void
     {
-        $page = max(1, (int)$this->input('p', 1));
-        $result = Media::paginate($page, self::PER_PAGE);
+        $page     = max(1, (int)$this->input('p', 1));
+        $albumId  = (int) $this->input('album', 0) ?: null;
+        $search   = trim((string) $this->input('q', ''));
+        $result   = Media::paginate($page, self::PER_PAGE, $albumId, $search !== '' ? $search : null);
 
         $totalPages = (int)max(1, ceil($result['total'] / self::PER_PAGE));
 
@@ -26,6 +30,9 @@ final class MediaController extends BaseController
             'total'      => $result['total'],
             'page'       => $page,
             'totalPages' => $totalPages,
+            'albums'     => \Settle\Features::enabled('photo_albums') ? Album::allForPicker() : [],
+            'albumId'    => $albumId,
+            'search'     => $search,
         ]);
     }
 
@@ -55,9 +62,13 @@ final class MediaController extends BaseController
         $media = Media::find((int)$params['id']);
         if (!$media) { http_response_code(404); echo 'Image not found.'; return; }
 
+        $isImage = strpos((string) $media['mime_type'], 'image/') === 0;
+
         $this->render('admin/media/edit', [
-            'media'  => $media,
-            'errors' => [],
+            'media'       => $media,
+            'errors'      => [],
+            'albums'      => ($isImage && \Settle\Features::enabled('photo_albums')) ? Album::allForPicker() : [],
+            'albumIds'    => $isImage ? Album::idsForMedia((int) $media['id']) : [],
         ]);
     }
 
@@ -67,23 +78,65 @@ final class MediaController extends BaseController
         $media = Media::find($id);
         if (!$media) { http_response_code(404); echo 'Image not found.'; return; }
 
+        $isImage = strpos((string) $media['mime_type'], 'image/') === 0;
         $altText = trim((string)$this->input('alt_text', ''));
         $caption = trim((string)$this->input('caption', ''));
+        $albumIds = array_map('intval', (array) $this->input('album_ids', []));
 
         $errors = [];
         if (mb_strlen($altText) > 255) $errors['alt_text'] = 'Alt text must be 255 characters or fewer.';
         if (mb_strlen($caption) > 500) $errors['caption']  = 'Caption must be 500 characters or fewer.';
         if ($errors) {
             $this->render('admin/media/edit', [
-                'media'   => array_merge($media, ['alt_text' => $altText, 'caption' => $caption]),
-                'errors'  => $errors,
+                'media'    => array_merge($media, ['alt_text' => $altText, 'caption' => $caption]),
+                'errors'   => $errors,
+                'albums'   => ($isImage && \Settle\Features::enabled('photo_albums')) ? Album::allForPicker() : [],
+                'albumIds' => $albumIds,
             ]);
             return;
         }
 
         Media::updateMetadata($id, $altText, $caption);
+        if ($isImage && \Settle\Features::enabled('photo_albums')) {
+            Album::syncForMedia($id, $albumIds);
+        }
         $this->flash('success', 'Image details saved.');
         $this->redirect("/admin/media/$id/edit");
+    }
+
+    /**
+     * Multi-select "Add to album" bulk action from the /admin/media grid
+     * (roadmap: Photo Albums). Any author+ may assign any photo — albums
+     * are event-based and often span multiple uploaders, so this is
+     * intentionally NOT restricted to the requester's own uploads (unlike
+     * destroy(), which is). Non-image rows (PDFs, etc.) are silently
+     * skipped so misc files never end up in a public gallery.
+     */
+    public function bulkAssign(): void
+    {
+        $albumId  = (int) $this->input('album_id', 0);
+        $mediaIds = array_map('intval', (array) $this->input('media_ids', []));
+
+        $album = $albumId > 0 ? Album::find($albumId) : null;
+        if (!$album || $mediaIds === []) {
+            $this->flash('error', 'Choose an album and at least one photo.');
+            $this->redirect('/admin/media');
+            return;
+        }
+
+        // Only image rows may join an album — filter out any PDFs/etc.
+        $imageIds = [];
+        foreach ($mediaIds as $mid) {
+            $row = Media::find($mid);
+            if ($row && strpos((string) $row['mime_type'], 'image/') === 0) {
+                $imageIds[] = $mid;
+            }
+        }
+
+        $added = Album::addPhotos($albumId, $imageIds);
+        AuditLog::record('album.photo_add', 'photo_album', $albumId, ['count' => $added]);
+        $this->flash('success', $added . ' photo' . ($added === 1 ? '' : 's') . " added to \"{$album['name']}\".");
+        $this->redirect('/admin/media');
     }
 
     public function destroy(array $params): void

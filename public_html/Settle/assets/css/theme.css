@@ -1829,3 +1829,138 @@ body.staff-modal-open { overflow: hidden; }
   .cal-weekday__full { display: none; }
   .cal-weekday__short { display: inline; }
 }
+
+/* ---------- 10. Photo Albums (Flickr-replacement gallery) ---------- */
+/* Reuses the blog-grid/post-card responsive language and existing brand
+   variables — no new :root values. Album cards mirror .post-card exactly;
+   photo tiles are a denser square-thumbnail grid for browsing hundreds of
+   images at once. */
+
+.album-grid {
+  display: grid;
+  gap: 1.75rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 600px) { .album-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 992px) { .album-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.album-card {
+  display: block;
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: transform var(--transition-med), box-shadow var(--transition-med);
+}
+.album-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+.album-card__media {
+  display: block;
+  aspect-ratio: 4 / 3;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--bg-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.album-card__placeholder {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.album-card__body {
+  display: block;
+  padding: 0.9rem 1rem;
+}
+.album-card__title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: var(--brand-ink);
+}
+.album-card__meta {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* Album detail header */
+.album-detail__meta {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+.album-detail__desc {
+  max-width: 60ch;
+  margin: 0.6rem auto 0;
+  color: var(--text);
+}
+
+/* Photo grid within an album — dense square tiles */
+.photo-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 480px) { .photo-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 768px) { .photo-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 992px) { .photo-grid { grid-template-columns: repeat(5, 1fr); } }
+
+.photo-tile {
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+}
+.photo-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-med);
+}
+.photo-tile:hover img { transform: scale(1.04); }
+
+/* Lightbox overlay — progressive enhancement over the plain grid links */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+.lightbox[hidden] { display: none; }
+.lightbox__img {
+  max-width: 100%;
+  max-height: 82vh;
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+.lightbox__caption {
+  color: var(--text-on-dark);
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+  text-align: center;
+  max-width: 60ch;
+}
+.lightbox__close {
+  position: absolute;
+  top: 1rem;
+  right: 1.2rem;
+  background: none;
+  border: none;
+  color: var(--text-on-dark);
+  font-size: 2.2rem;
+  line-height: 1;
+  cursor: pointer;
+}

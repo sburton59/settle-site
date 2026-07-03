@@ -5,6 +5,7 @@ namespace Settle\Controller;
 use Settle\Auth;
 use Settle\CalendarFormat;
 use Settle\Features;
+use Settle\Model\Album;
 use Settle\Model\CalendarEvent;
 use Settle\Model\Category;
 use Settle\Model\Media;
@@ -27,6 +28,9 @@ final class PublicController extends BaseController
 {
     /** Posts per page on the blog listing and category archives. */
     private const BLOG_PER_PAGE = 9;
+
+    /** Photos per page on the album detail view. */
+    private const PHOTOS_PER_PAGE = 40;
 
     public function home(): void
     {
@@ -399,6 +403,48 @@ final class PublicController extends BaseController
             'category'       => $category,
             'base_path'      => '/blog/category/' . $category['slug'],
             'all_categories' => Category::allForPicker(),
+        ]);
+    }
+
+    /**
+     * Public photo album index — Flickr-style grid of published albums,
+     * newest event_date first. Cover resolves to the explicit cover image,
+     * else the oldest photo assigned to the album, else a plain fallback
+     * card (handled in the template) — an album never renders broken.
+     */
+    public function photos(): void
+    {
+        PublicView::render('public/photos_index', [
+            'page_title' => 'Photo Albums',
+            'albums'     => Album::allPublished(),
+        ]);
+    }
+
+    /**
+     * Public album detail — paginated photo grid for one published album.
+     * An unpublished or unknown slug 404s (same treatment as an unpublished
+     * page), never partially renders.
+     */
+    public function photoAlbum(array $params): void
+    {
+        $album = Album::findBySlug((string) $params['slug']);
+        if (!$album || !$album['is_published']) {
+            http_response_code(404);
+            echo 'Album not found.';
+            return;
+        }
+
+        $page       = max(1, (int) ($_GET['page'] ?? 1));
+        $result     = Album::photos((int) $album['id'], $page, self::PHOTOS_PER_PAGE);
+        $totalPages = max(1, (int) ceil($result['total'] / self::PHOTOS_PER_PAGE));
+
+        PublicView::render('public/photos_album', [
+            'page_title'   => $album['name'],
+            'album'        => $album,
+            'photos'       => $result['items'],
+            'total'        => $result['total'],
+            'current_page' => $page,
+            'total_pages'  => $totalPages,
         ]);
     }
 

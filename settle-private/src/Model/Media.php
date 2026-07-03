@@ -7,25 +7,50 @@ use Settle\Database;
 final class Media
 {
     /**
-     * Fetch one page of media items.
+     * Fetch one page of media items, optionally filtered to one album
+     * (roadmap: Photo Albums) and/or a caption/original-name search term
+     * (browsing thousands of items flat is unusable otherwise).
+     *
      * @return array{items:array, total:int}
      */
-    public static function paginate(int $page, int $perPage): array
+    public static function paginate(int $page, int $perPage, ?int $albumId = null, ?string $search = null): array
     {
         $page = max(1, $page);
         $offset = ($page - 1) * $perPage;
 
+        $joins  = 'LEFT JOIN users u ON u.id = m.uploaded_by';
+        $wheres = [];
+        $params = [];
+
+        if ($albumId !== null && $albumId > 0) {
+            $joins .= ' JOIN album_media am ON am.media_id = m.id AND am.album_id = :aid';
+            $params[':aid'] = $albumId;
+        }
+
+        $search = trim((string) $search);
+        if ($search !== '') {
+            $wheres[]        = '(m.original_name LIKE :q OR m.caption LIKE :q OR m.alt_text LIKE :q)';
+            $params[':q']     = '%' . $search . '%';
+        }
+
+        $whereSql = $wheres ? ('WHERE ' . implode(' AND ', $wheres)) : '';
+
         $items = Database::query(
-            'SELECT m.*, u.display_name AS uploaded_by_name
+            "SELECT m.*, u.display_name AS uploaded_by_name
              FROM media m
-             LEFT JOIN users u ON u.id = m.uploaded_by
+             $joins
+             $whereSql
              ORDER BY m.uploaded_at DESC
-             LIMIT ' . (int)$perPage . ' OFFSET ' . (int)$offset
+             LIMIT " . (int)$perPage . ' OFFSET ' . (int)$offset,
             // LIMIT/OFFSET are forced to ints above; PDO won't bind them
             // as parameters with emulation disabled.
+            $params
         )->fetchAll();
 
-        $total = (int)Database::query('SELECT COUNT(*) FROM media')->fetchColumn();
+        $total = (int) Database::query(
+            "SELECT COUNT(*) FROM media m $joins $whereSql",
+            $params
+        )->fetchColumn();
 
         return ['items' => $items, 'total' => $total];
     }

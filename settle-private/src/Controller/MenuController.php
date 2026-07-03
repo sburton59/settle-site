@@ -511,6 +511,7 @@ final class MenuController extends BaseController
             ['key' => 'blog',    'url' => '/blog',     'label' => 'Blog index'],
             ['key' => 'calendar','url' => '/calendar', 'label' => 'Calendar'],
             ['key' => 'calendar','url' => '/calendar/list', 'label' => 'Calendar (list view)'],
+            ['key' => 'photo_albums', 'url' => '/photos', 'label' => 'Photo Albums'],
             ['key' => null,      'url' => '/books',    'label' => 'Library (all books)'],
             ['key' => null,      'url' => '/books/our-church', 'label' => 'History: Our Church (1976)'],
             ['key' => null,      'url' => '/books/behind-the-open-door', 'label' => 'History: Behind the Open Door (1995)'],

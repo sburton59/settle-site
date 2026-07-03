@@ -19,6 +19,7 @@ require __DIR__ . '/../../settle-private/src/bootstrap.php';
 
 use Settle\Features;
 use Settle\Router;
+use Settle\Controller\AlbumController;
 use Settle\Controller\AuditLogController;
 use Settle\Controller\AuthController;
 use Settle\Controller\BooksController;
@@ -167,6 +168,30 @@ if (Features::enabled('media')) {
     $router->get ('/admin/media/{id}/edit',           [MediaController::class, 'edit'],             ['auth' => true]);
     $router->post('/admin/media/{id}',                [MediaController::class, 'update'],           ['auth' => true]);
     $router->post('/admin/media/{id}/delete',         [MediaController::class, 'destroy'],          ['auth' => true]);
+    $router->post('/admin/media/bulk-assign',         [MediaController::class, 'bulkAssign'],       ['auth' => true]);
+}
+
+// -------------------------------------------------------------------
+// Photo Albums (Flickr-replacement gallery)
+//   Public: /photos album grid, /photos/{slug} paginated album detail.
+//   Admin: album CRUD is editor+ (the curated list, mirrors blog
+//   categories); any author+ may assign existing Media Library photos
+//   into an album via MediaController::bulkAssign() above, or per-photo
+//   via the album checkboxes on /admin/media/{id}/edit. A photo only
+//   ever shows in the public gallery once explicitly assigned — nothing
+//   in the Media Library appears automatically. Depends on 'media'.
+// -------------------------------------------------------------------
+if (Features::enabled('photo_albums')) {
+    $router->get('/photos',        [PublicController::class, 'photos']);
+    $router->get('/photos/{slug}', [PublicController::class, 'photoAlbum']);
+
+    $router->get ('/admin/albums',                        [AlbumController::class, 'index'],       ['auth' => true, 'role' => 'editor']);
+    $router->get ('/admin/albums/new',                    [AlbumController::class, 'create'],      ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/albums',                        [AlbumController::class, 'store'],       ['auth' => true, 'role' => 'editor']);
+    $router->get ('/admin/albums/{id}/edit',              [AlbumController::class, 'edit'],        ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/albums/{id}',                   [AlbumController::class, 'update'],      ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/albums/{id}/delete',            [AlbumController::class, 'destroy'],     ['auth' => true, 'role' => 'editor']);
+    $router->post('/admin/albums/{id}/photos/{mediaId}/remove', [AlbumController::class, 'removePhoto'], ['auth' => true, 'role' => 'editor']);
 }
 
 // -------------------------------------------------------------------

@@ -1,7 +1,11 @@
 <?php
 /** @var array $media */
 /** @var array $errors */
+/** @var array $albums    Album::allForPicker() rows, [] if not an image or feature is off */
+/** @var array $albumIds  Album ids this photo currently belongs to */
 $errors = $errors ?? [];
+$albums = $albums ?? [];
+$albumIds = $albumIds ?? [];
 $isImage = strpos((string)$media['mime_type'], 'image/') === 0;
 $isPdf   = $media['mime_type'] === 'application/pdf';
 $url     = '/uploads/' . htmlspecialchars($media['filename'], ENT_QUOTES);
@@ -80,6 +84,23 @@ $url     = '/uploads/' . htmlspecialchars($media['filename'], ENT_QUOTES);
                     </small>
                 <?php endif; ?>
             </label>
+
+            <?php if (!empty($albums)): ?>
+              <fieldset style="border:1px solid var(--gray-200); border-radius:4px; padding:0.8em 1em; margin-top:1em;">
+                <legend style="padding:0 0.4em; font-weight:600;">Albums</legend>
+                <p class="muted" style="margin-top:0; font-size:0.85em;">
+                    Check any albums this photo should appear in on the public gallery.
+                </p>
+                <?php foreach ($albums as $a): ?>
+                  <label class="checkbox" style="display:block; margin-bottom:0.3em;">
+                    <input type="checkbox" name="album_ids[]" value="<?= (int) $a['id'] ?>"
+                           <?= in_array((int) $a['id'], $albumIds, true) ? 'checked' : '' ?>>
+                    <?= htmlspecialchars($a['name'], ENT_QUOTES) ?>
+                  </label>
+                <?php endforeach; ?>
+                <a href="/admin/albums/new" style="font-size:0.85em;">+ New album</a>
+              </fieldset>
+            <?php endif; ?>
 
             <div style="margin-top:1.5em;">
                 <button type="submit" class="btn-primary">Save Changes</button>

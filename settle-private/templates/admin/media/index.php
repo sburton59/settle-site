@@ -3,11 +3,62 @@
 /** @var int $total */
 /** @var int $page */
 /** @var int $totalPages */
+/** @var array $albums    Album::allForPicker() rows, [] if photo_albums feature is off */
+/** @var int|null $albumId  Current filter, if any */
+/** @var string $search */
+$albums  = $albums ?? [];
+$albumId = $albumId ?? null;
+$search  = $search ?? '';
+
+if (!function_exists('self_format_bytes')) {
+    /**
+     * Format bytes for friendly display. Locally scoped helper —
+     * if more templates need this we'd promote it somewhere shared.
+     * Guarded with function_exists() so a harness/test process that
+     * renders this template more than once doesn't fatal on redeclare
+     * (a normal request only ever includes this file once).
+     */
+    function self_format_bytes(int $bytes): string
+    {
+        if ($bytes < 1024)             return $bytes . ' B';
+        if ($bytes < 1024 * 1024)      return round($bytes / 1024, 1) . ' KB';
+        if ($bytes < 1024 * 1024 * 10) return round($bytes / 1024 / 1024, 1) . ' MB';
+        return round($bytes / 1024 / 1024) . ' MB';
+    }
+}
 ?>
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1em;">
     <h1 style="margin:0;">Photos &amp; Files</h1>
     <span class="muted"><?= (int)$total ?> file<?= $total === 1 ? '' : 's' ?></span>
 </div>
+
+<?php if (!empty($albums)): ?>
+  <div style="background:#fff; padding:0.9em 1.2em; border-radius:4px;
+             box-shadow:0 1px 3px rgba(0,0,0,0.05); margin-bottom:1em;
+             display:flex; flex-wrap:wrap; gap:0.8em; align-items:flex-end;">
+    <form method="get" action="/admin/media" style="display:flex; gap:0.6em; flex-wrap:wrap; align-items:flex-end;">
+      <label style="margin:0;">Search
+        <input type="text" name="q" value="<?= htmlspecialchars($search, ENT_QUOTES) ?>"
+               placeholder="filename, caption, alt text…" style="max-width:16em;">
+      </label>
+      <label style="margin:0;">Album
+        <select name="album" style="max-width:14em;">
+          <option value="">All files</option>
+          <?php foreach ($albums as $a): ?>
+            <option value="<?= (int) $a['id'] ?>" <?= $albumId === (int) $a['id'] ? 'selected' : '' ?>>
+              <?= htmlspecialchars($a['name'], ENT_QUOTES) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </label>
+      <button type="submit" class="btn-primary">Filter</button>
+      <?php if ($albumId !== null || $search !== ''): ?>
+        <a href="/admin/media" style="align-self:center;">Clear</a>
+      <?php endif; ?>
+    </form>
+    <a href="/admin/albums" style="margin-left:auto; align-self:center;">Manage Albums →</a>
+  </div>
+<?php endif; ?>
 
 <?php
 /*
@@ -51,9 +102,27 @@
     <ul class="uploader__list" id="media-uploader__list" aria-live="polite"></ul>
 </div>
 
+<?php if (!empty($albums)): ?>
+  <form id="bulk-assign-form" method="post" action="/admin/media/bulk-assign"
+        style="background:#fff; padding:0.8em 1.2em; border-radius:4px;
+               box-shadow:0 1px 3px rgba(0,0,0,0.05); margin-bottom:1em;
+               display:flex; flex-wrap:wrap; gap:0.7em; align-items:center;">
+    <?= \Settle\Csrf::field() ?>
+    <span class="muted" id="bulk-select-count">0 selected</span>
+    <select name="album_id" required style="max-width:14em;">
+      <option value="">Add to album…</option>
+      <?php foreach ($albums as $a): ?>
+        <option value="<?= (int) $a['id'] ?>"><?= htmlspecialchars($a['name'], ENT_QUOTES) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <button type="submit" class="btn-primary" id="bulk-assign-submit" disabled>Add Selected</button>
+    <span class="muted" style="font-size:0.85em;">Select photos below with the checkboxes on each tile. PDFs and non-image files are skipped.</span>
+  </form>
+<?php endif; ?>
+
 <?php if (empty($items)): ?>
     <div style="background:#fff; padding:2em; text-align:center; border-radius:4px;">
-        <p class="muted">No files yet. Upload your first one above.</p>
+        <p class="muted"><?= ($albumId !== null || $search !== '') ? 'No files match this filter.' : 'No files yet. Upload your first one above.' ?></p>
     </div>
 <?php else: ?>
     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:1em;">
@@ -66,8 +135,15 @@
                 $thumbRel = !empty($m['thumbnail_filename']) ? $m['thumbnail_filename'] : $m['filename'];
                 $thumbUrl = '/uploads/' . htmlspecialchars(ltrim((string)$thumbRel, '/'), ENT_QUOTES);
             ?>
-            <div style="background:#fff; border-radius:4px; overflow:hidden;
+            <div style="background:#fff; border-radius:4px; overflow:hidden; position:relative;
                         box-shadow:0 1px 3px rgba(0,0,0,0.05); display:flex; flex-direction:column;">
+                <?php if (!empty($albums) && $isImage): ?>
+                  <label style="position:absolute; top:0.4em; left:0.4em; z-index:2; background:rgba(255,255,255,0.9);
+                                border-radius:3px; padding:0.15em 0.3em; cursor:pointer;">
+                    <input type="checkbox" form="bulk-assign-form" name="media_ids[]" value="<?= (int) $m['id'] ?>"
+                           class="bulk-select-checkbox">
+                  </label>
+                <?php endif; ?>
                 <a href="/admin/media/<?= (int)$m['id'] ?>/edit"
                    style="display:block; aspect-ratio:1/1; background:#f0f0f0;
                           display:flex; align-items:center; justify-content:center;
@@ -102,31 +178,43 @@
         <?php endforeach; ?>
     </div>
 
+    <?php
+        $qs = [];
+        if ($albumId !== null) { $qs['album'] = $albumId; }
+        if ($search !== '')    { $qs['q'] = $search; }
+        $qsStr = $qs ? ('&' . http_build_query($qs)) : '';
+    ?>
     <?php if ($totalPages > 1): ?>
         <div style="margin-top:1.5em; text-align:center;">
             <?php if ($page > 1): ?>
-                <a href="/admin/media?p=<?= $page - 1 ?>">&laquo; Previous</a>
+                <a href="/admin/media?p=<?= $page - 1 ?><?= $qsStr ?>">&laquo; Previous</a>
             <?php endif; ?>
             <span class="muted" style="margin:0 1em;">
                 Page <?= $page ?> of <?= $totalPages ?>
             </span>
             <?php if ($page < $totalPages): ?>
-                <a href="/admin/media?p=<?= $page + 1 ?>">Next &raquo;</a>
+                <a href="/admin/media?p=<?= $page + 1 ?><?= $qsStr ?>">Next &raquo;</a>
             <?php endif; ?>
         </div>
     <?php endif; ?>
 <?php endif; ?>
 
-<?php
-/**
- * Format bytes for friendly display. Locally scoped helper —
- * if more templates need this we'd promote it somewhere shared.
- */
-function self_format_bytes(int $bytes): string
-{
-    if ($bytes < 1024)             return $bytes . ' B';
-    if ($bytes < 1024 * 1024)      return round($bytes / 1024, 1) . ' KB';
-    if ($bytes < 1024 * 1024 * 10) return round($bytes / 1024 / 1024, 1) . ' MB';
-    return round($bytes / 1024 / 1024) . ' MB';
-}
-?>
+<?php if (!empty($albums)): ?>
+<script>
+(function () {
+    var boxes = document.querySelectorAll('.bulk-select-checkbox');
+    var count = document.getElementById('bulk-select-count');
+    var submit = document.getElementById('bulk-assign-submit');
+    if (!boxes.length || !count || !submit) return;
+
+    function refresh() {
+        var n = 0;
+        boxes.forEach(function (b) { if (b.checked) n++; });
+        count.textContent = n + ' selected';
+        submit.disabled = n === 0;
+    }
+    boxes.forEach(function (b) { b.addEventListener('change', refresh); });
+    refresh();
+})();
+</script>
+<?php endif; ?>

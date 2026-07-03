@@ -155,5 +155,6 @@ return [
         'menu'      => true,  // data-driven public navigation (roadmap #1.5)
         'blog'      => true,  // multi-author blog posts (roadmap #3, not yet built)
         'calendar'  => true,  // Google Calendar integration (roadmap #2, not yet built)
+        'photo_albums' => true,  // photo album gallery (roadmap #12b successor; depends on media)
     ],
 ];

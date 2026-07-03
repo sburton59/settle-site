@@ -304,4 +304,40 @@ CREATE TABLE menu_items (
     CONSTRAINT fk_menu_user   FOREIGN KEY (updated_by) REFERENCES users(id)      ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 14. PHOTO ALBUMS (added migration 0007)
+-- Flickr-replacement gallery. photo_albums is the curated, editor-managed
+-- list (mirrors categories); album_media is the many-to-many junction to
+-- the existing media table (mirrors post_categories). A photo appears in
+-- the public gallery only once explicitly assigned to an album here —
+-- logos, PDFs, and other Library files never show up just by existing.
+CREATE TABLE photo_albums (
+    id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    slug            VARCHAR(150) NOT NULL,
+    name            VARCHAR(150) NOT NULL,
+    description     VARCHAR(500) NULL,
+    event_date      DATE NULL,
+    cover_media_id  INT UNSIGNED NULL,
+    is_published    TINYINT(1) NOT NULL DEFAULT 0,
+    sort_order      SMALLINT NOT NULL DEFAULT 0,
+    created_by      INT UNSIGNED NOT NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_photo_albums_slug (slug),
+    KEY idx_pa_event_date (event_date),
+    CONSTRAINT fk_pa_cover   FOREIGN KEY (cover_media_id) REFERENCES media(id) ON DELETE SET NULL,
+    CONSTRAINT fk_pa_creator FOREIGN KEY (created_by)     REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE album_media (
+    album_id    INT UNSIGNED NOT NULL,
+    media_id    INT UNSIGNED NOT NULL,
+    sort_order  SMALLINT NOT NULL DEFAULT 0,
+    added_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (album_id, media_id),
+    KEY idx_am_media (media_id),
+    CONSTRAINT fk_am_album FOREIGN KEY (album_id) REFERENCES photo_albums(id) ON DELETE CASCADE,
+    CONSTRAINT fk_am_media FOREIGN KEY (media_id) REFERENCES media(id)        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 1;
