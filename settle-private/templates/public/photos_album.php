@@ -81,43 +81,73 @@ $when = !empty($album['event_date']) ? date('F Y', strtotime((string) $album['ev
 <!-- Lightbox overlay (progressive enhancement; hidden until JS opens it). -->
 <div id="lightbox" class="lightbox" hidden>
   <button type="button" class="lightbox__close" aria-label="Close">&times;</button>
+  <button type="button" class="lightbox__nav lightbox__nav--prev" aria-label="Previous photo">&#8249;</button>
   <img class="lightbox__img" src="" alt="">
+  <button type="button" class="lightbox__nav lightbox__nav--next" aria-label="Next photo">&#8250;</button>
   <p class="lightbox__caption"></p>
 </div>
 
 <script>
 (function () {
-  var tiles = document.querySelectorAll('.photo-tile');
+  var tiles = Array.prototype.slice.call(document.querySelectorAll('.photo-tile'));
   var box   = document.getElementById('lightbox');
   if (!tiles.length || !box) return;
 
-  var img     = box.querySelector('.lightbox__img');
-  var caption = box.querySelector('.lightbox__caption');
+  var img      = box.querySelector('.lightbox__img');
+  var caption  = box.querySelector('.lightbox__caption');
   var closeBtn = box.querySelector('.lightbox__close');
+  var prevBtn  = box.querySelector('.lightbox__nav--prev');
+  var nextBtn  = box.querySelector('.lightbox__nav--next');
+  var current  = -1;
 
-  function open(tile) {
+  function show(index) {
+    var tile = tiles[index];
+    if (!tile) return;
+    current = index;
     img.src = tile.getAttribute('data-lightbox-full');
     img.alt = tile.querySelector('img') ? tile.querySelector('img').alt : '';
     var cap = tile.getAttribute('data-lightbox-caption') || '';
     caption.textContent = cap;
     caption.hidden = cap === '';
+
+    // Only this page's photos are loaded, so navigation stops at either
+    // end rather than jumping to another page — same "disabled at the
+    // boundary" treatment as the Older/Newer pagination links below.
+    prevBtn.disabled = current <= 0;
+    nextBtn.disabled = current >= tiles.length - 1;
+  }
+  function open(index) {
+    show(index);
     box.hidden = false;
     document.body.style.overflow = 'hidden';
   }
   function close() {
     box.hidden = true;
     img.src = '';
+    current = -1;
     document.body.style.overflow = '';
   }
 
-  tiles.forEach(function (tile) {
+  tiles.forEach(function (tile, index) {
     tile.addEventListener('click', function (e) {
       e.preventDefault();
-      open(tile);
+      open(index);
     });
   });
+
   closeBtn.addEventListener('click', close);
-  box.addEventListener('click', function (e) { if (e.target === box) close(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !box.hidden) close(); });
+  prevBtn.addEventListener('click', function () { if (current > 0) show(current - 1); });
+  nextBtn.addEventListener('click', function () { if (current < tiles.length - 1) show(current + 1); });
+
+  box.addEventListener('click', function (e) {
+    if (e.target === box) close();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (box.hidden) return;
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key === 'ArrowLeft' && current > 0) { show(current - 1); return; }
+    if (e.key === 'ArrowRight' && current < tiles.length - 1) { show(current + 1); return; }
+  });
 })();
 </script>

@@ -1964,3 +1964,30 @@ body.staff-modal-open { overflow: hidden; }
   line-height: 1;
   cursor: pointer;
 }
+.lightbox__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: var(--text-on-dark);
+  font-size: 2.4rem;
+  line-height: 1;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+}
+.lightbox__nav:hover:not(:disabled) { background: rgba(255, 255, 255, 0.25); }
+.lightbox__nav:disabled { opacity: 0.25; cursor: default; }
+.lightbox__nav--prev { left: 1rem; }
+.lightbox__nav--next { right: 1rem; }
+@media (max-width: 640px) {
+  .lightbox__nav { width: 2.2rem; height: 2.2rem; font-size: 2rem; }
+  .lightbox__nav--prev { left: 0.4rem; }
+  .lightbox__nav--next { right: 0.4rem; }
+}
