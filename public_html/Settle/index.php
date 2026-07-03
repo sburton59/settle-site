@@ -165,10 +165,15 @@ if (Features::enabled('media')) {
     $router->get ('/admin/media/picker',              [MediaController::class, 'picker'],           ['auth' => true]);
     $router->post('/admin/media/upload-from-editor', [MediaController::class, 'uploadFromEditor'], ['auth' => true]);
     $router->post('/admin/media/upload-ajax',        [MediaController::class, 'uploadAjax'],        ['auth' => true]);
+    // Literal route registered BEFORE the /{id} wildcard below — the router
+    // is first-match-wins and {id} (`[^/]+`) would otherwise swallow
+    // "bulk-assign" as a literal id (Media::find(0) -> 404 "Image not
+    // found."). Same ordering rule as /admin/media/picker above and
+    // /blog/category/{slug} vs /blog/{slug}.
+    $router->post('/admin/media/bulk-assign',        [MediaController::class, 'bulkAssign'],        ['auth' => true]);
     $router->get ('/admin/media/{id}/edit',           [MediaController::class, 'edit'],             ['auth' => true]);
     $router->post('/admin/media/{id}',                [MediaController::class, 'update'],           ['auth' => true]);
     $router->post('/admin/media/{id}/delete',         [MediaController::class, 'destroy'],          ['auth' => true]);
-    $router->post('/admin/media/bulk-assign',         [MediaController::class, 'bulkAssign'],       ['auth' => true]);
 }
 
 // -------------------------------------------------------------------
