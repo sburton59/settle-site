@@ -137,8 +137,8 @@ HTML,
       photos. Can read the prayer and contact inboxes (private prayer details
       are hidden from Authors).</li>
   <li><strong>Editor</strong> — manages <em>all</em> content: pages, the menu,
-      every blog post, photos, the slideshow, the staff directory, the
-      calendar, and prayer-request status.</li>
+      every blog post, photos and photo albums, the slideshow, the staff
+      directory, the calendar, and prayer-request status.</li>
   <li><strong>Administrator</strong> — everything above, plus managing staff
       logins, site Settings, and the activity log, and deleting prayer or
       contact messages.</li>
@@ -308,7 +308,7 @@ HTML,
                 'title' => 'Photos (Media Library)',
                 'matrix' => true,
                 'access' => [
-                    'author' => [self::PARTIAL, 'Upload photos; edit or delete only the photos YOU uploaded'],
+                    'author' => [self::PARTIAL, 'Upload photos; edit or delete only the photos YOU uploaded; may add any photo to any Album'],
                     'editor' => [self::FULL, 'Upload, edit, and delete any photo'],
                     'admin'  => [self::FULL, 'Upload, edit, and delete any photo'],
                 ],
@@ -324,6 +324,22 @@ can manage everything.</p>
 area. You can upload several at once. New photos appear in the library right
 away, ready to use in pages and posts.</p>
 
+<h3>Finding a photo</h3>
+<p>Once the library holds a lot of photos, two tools help you find what you
+need: the <strong>search box</strong> (matches the file name, caption, or alt
+text) and the <strong>Album</strong> dropdown, which narrows the grid down to
+only the photos in one album. Use <strong>Clear</strong> to go back to
+everything.</p>
+
+<h3>Adding photos to an Album (bulk)</h3>
+<p>Tick the small checkbox in the top-left corner of any photo tile, choose an
+album from the <strong>"Add to album…"</strong> dropdown, and click
+<strong>Add Selected</strong>. This is the fastest way to sort a batch of
+event photos into an album right after uploading them. PDFs and other
+non-photo files are skipped automatically — they can never be added to an
+album. See <a href="#section-photo-albums">Photo Albums</a> for what albums
+are and how the public gallery works.</p>
+
 <h3>Tidy up a photo</h3>
 <p>Click a photo, then <strong>Edit File</strong>:</p>
 <ul>
@@ -331,9 +347,64 @@ away, ready to use in pages and posts.</p>
       readers and search engines (for example, "Children singing in the
       sanctuary").</li>
   <li><strong>Caption</strong> — optional text shown with the image.</li>
+  <li><strong>Albums</strong> — tick or untick which albums this one photo
+      belongs to, if any (an alternative to the bulk method above, handy for
+      moving a single photo between albums).</li>
   <li>Press <strong>Save Changes</strong>.</li>
 </ul>
-<p>Deleting a photo is permanent and can't be undone.</p>
+<p>Deleting a photo is permanent and can't be undone — it also removes the
+photo from every album it was in.</p>
+HTML,
+            ],
+
+            [
+                'slug' => 'photo-albums',
+                'title' => 'Photo Albums',
+                'matrix' => true,
+                'access' => [
+                    'author' => [self::PARTIAL, 'Can add any existing photo to any album; cannot create, publish, or delete albums'],
+                    'editor' => [self::FULL, 'Create, edit, publish, and delete albums'],
+                    'admin'  => [self::FULL, 'Create, edit, publish, and delete albums'],
+                ],
+                'body' => <<<'HTML'
+<p>Photo Albums is the public photo gallery at <strong>/photos</strong> on the
+website — the replacement for the church's old Flickr page. Open
+<strong>Photo Albums</strong> in the left menu.</p>
+<p><strong>A photo only shows up on the public gallery once it has been added
+to a published album.</strong> Simply having a photo in the Media Library
+does not put it on the public site — logos, bulletins, and other files stay
+private automatically because nobody ever adds them to an album.</p>
+
+<h3>Create an album</h3>
+<p>Click <strong>+ New Album</strong> and fill in:</p>
+<ul>
+  <li><strong>Name</strong> — for example, "VBS True North 2026".</li>
+  <li><strong>Web address</strong> — fills in automatically from the name;
+      this becomes the album's page address.</li>
+  <li><strong>Description</strong> — optional, shown at the top of the
+      album's page.</li>
+  <li><strong>Event date</strong> — controls the "Aug 2026"-style label shown
+      on the album's card, and puts albums in newest-first order on the
+      public gallery page.</li>
+  <li><strong>Cover image</strong> — optional. If you don't choose one, the
+      oldest photo added to the album is used automatically.</li>
+  <li><strong>Published</strong> — must be checked for the album to appear on
+      the public site. Leave it unchecked while you're still adding photos.</li>
+</ul>
+<p>Click <strong>Create Album</strong>, then start adding photos — either from
+this screen's photo grid (once the album exists) or from the
+<a href="#section-photos">Photos</a> screen using the checkboxes and
+"Add to album" button, which any signed-in staff member can use.</p>
+
+<h3>Removing a photo from an album</h3>
+<p>On the album's edit screen, click <strong>Remove from album</strong> under
+any photo. This only takes the photo out of that one album — it stays in the
+Media Library and in any other albums it belongs to.</p>
+
+<h3>Deleting an album</h3>
+<p>Click <strong>Delete this album</strong> at the bottom of the album's edit
+screen. This removes the album and its listing on the public site, but the
+photos themselves are never deleted — they remain in the Media Library.</p>
 HTML,
             ],
 
