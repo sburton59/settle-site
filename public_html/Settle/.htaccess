@@ -1,4 +1,56 @@
 RewriteEngine On
+# ============================================================
+# Old (WordPress) -> New URL redirect map  [#10, added at cutover]
+# Paste this block into public_html/Settle/.htaccess immediately AFTER
+# "RewriteEngine On" and the dotfile-block, and BEFORE the
+# "Real files/directories" and front-controller rules so it fires first.
+# Every rule matches with or without a trailing slash.
+#
+# TYPE: R=302 (TEMPORARY) for the go-live window so you can roll back to
+# WordPress without browsers having cached a permanent redirect. Once the
+# new site is confirmed stable (~1-2 weeks), change every "R=302" to
+# "R=301" (permanent) so Google transfers rankings and bookmarks settle.
+# Find/replace R=302 -> R=301 does the whole block at once.
+# ============================================================
+
+# --- Content & ministry pages -> /page/{slug} ---
+RewriteRule ^new/?$                      /page/im-new              [R=302,L]
+RewriteRule ^sundays/?$                  /page/sundays             [R=302,L]
+RewriteRule ^sermon-series/?$            /page/sermons             [R=302,L]
+RewriteRule ^this-sundays-bulletin/?$    /page/worship-bulletin    [R=302,L]
+RewriteRule ^directions-parking/?$       /page/directions-parking  [R=302,L]
+RewriteRule ^weekly-schedule/?$          /page/weekly-schedule     [R=302,L]
+RewriteRule ^about/?$                    /page/about               [R=302,L]
+RewriteRule ^connect/?$                  /page/connect             [R=302,L]
+RewriteRule ^children/?$                 /page/children            [R=302,L]
+RewriteRule ^settle-preschool/?$         /page/settle-preschool    [R=302,L]
+RewriteRule ^parents-day-out/?$          /page/parents-day-out     [R=302,L]
+RewriteRule ^youth/?$                    /page/youth               [R=302,L]
+RewriteRule ^adult/?$                    /page/adult-ministries    [R=302,L]
+RewriteRule ^the-roadrunners/?$          /page/the-roadrunners     [R=302,L]
+RewriteRule ^mission-service/?$          /page/missions            [R=302,L]
+RewriteRule ^mission-partners/?$         /page/mission-partners    [R=302,L]
+RewriteRule ^mission-outreach/?$         /page/mission-outreach    [R=302,L]
+RewriteRule ^give-to-faith-promises/?$   /page/faith-promises      [R=302,L]
+RewriteRule ^newsletter/?$               /page/newsletter          [R=302,L]
+RewriteRule ^watch/?$                    /page/watch               [R=302,L]
+RewriteRule ^give/?$                     /page/give                [R=302,L]
+RewriteRule ^news/employment-position/?$ /page/employment          [R=302,L]
+
+# --- Feature routes ---
+RewriteRule ^listings/staff/?$           /staff                    [R=302,L]
+RewriteRule ^prayer-request/?$           /prayer                   [R=302,L]
+RewriteRule ^contact/?$                  /contact                  [R=302,L]
+RewriteRule ^calendar/?$                 /calendar                 [R=302,L]
+
+# --- Old per-event permalinks (/event/{slug}/{date}/) -> /calendar ---
+# No 1:1 target on the new Google-Calendar-backed site, so send them all to
+# the calendar rather than 404 (keeps shared weekly-email links working).
+RewriteRule ^event(/.*)?$                /calendar                 [R=302,L]
+
+# ============================================================
+# End redirect map
+# ============================================================
 
 # Block dotfiles
 RewriteRule ^\. - [F,L]
