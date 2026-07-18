@@ -40,8 +40,8 @@ RewriteRule ^news/employment-position/?$ /page/employment          [R=302,L]
 # --- Feature routes ---
 RewriteRule ^listings/staff/?$           /staff                    [R=302,L]
 RewriteRule ^prayer-request/?$           /prayer                   [R=302,L]
-RewriteRule ^contact/?$                  /contact                  [R=302,L]
-RewriteRule ^calendar/?$                 /calendar                 [R=302,L]
+RewriteRule ^contact/$                  /contact                  [R=302,L]
+RewriteRule ^calendar/$                 /calendar                 [R=302,L]
 
 # --- Old per-event permalinks (/event/{slug}/{date}/) -> /calendar ---
 # No 1:1 target on the new Google-Calendar-backed site, so send them all to
